@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17413a">
+  <meta name="description" content="中小企業診断士1次試験の過去10年分PDFを年度・科目別に開き、解答状況、得点、復習メモを管理できる演習アプリ。">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>診断士 過去問演習</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f1;
+      --surface: #ffffff;
+      --surface-soft: #eef3ea;
+      --ink: #14211d;
+      --muted: #63736c;
+      --line: #d9e2d4;
+      --brand: #17413a;
+      --brand-2: #2e7358;
+      --brand-soft: #e1efe6;
+      --warn: #8a5a18;
+      --warn-soft: #fff2d4;
+      --danger: #a43b35;
+      --danger-soft: #f9e4e1;
+      --shadow: 0 14px 34px rgba(25, 43, 35, .08);
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); color: var(--ink); font-family: "Yu Gothic", "Meiryo", system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); }
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+    button, .button-link {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      min-height: 42px;
+      padding: 9px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    button:hover, .button-link:hover { background: var(--surface-soft); }
+    button.primary, .button-link.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    button.ghost { border-color: transparent; background: transparent; color: var(--brand); }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 10px 11px;
+    }
+    textarea { min-height: 74px; resize: vertical; }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .app { min-height: 100vh; padding-bottom: 78px; }
+    .top {
+      background: linear-gradient(130deg, #17413a, #2e7358 58%, #657c4a);
+      color: #fff;
+      padding: 22px 18px 26px;
+    }
+    .top-inner { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+    .brand-row { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+    .brand-mark { display: flex; gap: 11px; align-items: center; min-width: 0; }
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.28);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      font-weight: 800;
+    }
+    h1 { margin: 0; font-size: clamp(22px, 5vw, 34px); line-height: 1.25; letter-spacing: 0; }
+    .subtitle { margin: 5px 0 0; color: rgba(255,255,255,.78); line-height: 1.7; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .top-actions button { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .stat {
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-width: 0;
+    }
+    .stat span { display: block; font-size: 12px; color: rgba(255,255,255,.74); }
+    .stat strong { display: block; margin-top: 2px; font-size: 24px; line-height: 1.2; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 18px; }
+    .toolbar {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1.2fr .9fr .9fr .9fr auto;
+      align-items: end;
+      margin-top: -28px;
+      position: relative;
+      z-index: 2;
+    }
+    .search-wrap { position: relative; }
+    .search-wrap input { padding-left: 36px; }
+    .search-wrap svg { position: absolute; left: 11px; bottom: 12px; color: var(--muted); }
+    .view { display: none; margin-top: 18px; }
+    .view.active { display: block; }
+    .year-list { display: grid; gap: 14px; }
+    .year-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .year-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fbfcfa;
+    }
+    .year-title { display: grid; gap: 3px; }
+    .year-title h2 { margin: 0; font-size: 20px; line-height: 1.3; }
+    .year-title span { color: var(--muted); font-size: 13px; }
+    .progress { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; min-width: 160px; }
+    .bar { height: 9px; background: var(--surface-soft); border-radius: 999px; overflow: hidden; flex: 1; }
+    .bar > i { display: block; height: 100%; width: 0%; background: var(--brand-2); }
+    .subjects-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .paper {
+      padding: 14px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .paper:nth-child(2n) { border-right: 0; }
+    .paper-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .paper-title { min-width: 0; }
+    .paper-title strong { display: block; line-height: 1.4; }
+    .paper-title small { display: block; color: var(--muted); margin-top: 2px; }
+    .badge {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      background: var(--surface-soft);
+      color: var(--muted);
+    }
+    .badge.done { background: var(--brand-soft); color: var(--brand); }
+    .badge.review { background: var(--warn-soft); color: var(--warn); }
+    .paper-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .paper-actions .button-link { min-width: 0; }
+    .paper-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(84px, 120px);
+      gap: 10px;
+      align-items: end;
+    }
+    .checks { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .check { display: inline-flex; gap: 7px; align-items: center; color: var(--ink); font-size: 13px; font-weight: 700; }
+    .check input { width: 18px; height: 18px; padding: 0; }
+    .memo { display: none; }
+    .memo.open { display: block; }
+    .answer-row {
+      padding: 14px 16px;
+      background: #fbfcfa;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .answer-row p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .dashboard { display: grid; grid-template-columns: 1fr 360px; gap: 14px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 18px; }
+    .subject-bars { display: grid; gap: 12px; }
+    .subject-line { display: grid; grid-template-columns: 155px 1fr 48px; gap: 10px; align-items: center; font-size: 13px; }
+    .todo-list { display: grid; gap: 8px; }
+    .todo {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+    .todo span { color: var(--muted); font-size: 12px; }
+    .empty { color: var(--muted); line-height: 1.7; margin: 0; }
+    .source {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,.94);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+      padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    }
+    .bottom-nav-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .nav-btn { min-height: 48px; display: grid; gap: 2px; justify-items: center; align-content: center; padding: 6px 8px; font-size: 12px; }
+    .nav-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 20, 18, .48);
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 18px;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      width: min(680px, 100%);
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: 0 30px 80px rgba(0,0,0,.22);
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+    .modal h2 { margin: 0; font-size: 20px; }
+    .modal textarea { min-height: 180px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 980px) {
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .toolbar > button { grid-column: span 2; }
+      .dashboard { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .top { padding: 18px 14px 28px; }
+      .brand-row { display: grid; }
+      .top-actions { justify-content: flex-start; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .shell { padding: 14px; }
+      .toolbar { grid-template-columns: 1fr; margin-top: -22px; }
+      .toolbar > button { grid-column: auto; }
+      .subjects-grid { grid-template-columns: 1fr; }
+      .paper { border-right: 0; }
+      .paper-controls { grid-template-columns: 1fr; }
+      .year-head { display: grid; }
+      .progress { min-width: 0; }
+      .subject-line { grid-template-columns: 1fr; gap: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="top-inner">
+        <div class="brand-row">
+          <div class="brand-mark">
+            <div class="logo" aria-hidden="true">診</div>
+            <div>
+              <h1>診断士 過去問演習</h1>
+              <p class="subtitle">中小企業診断士1次試験、令和7年度から平成28年度までの過去10年分を年度・科目別に整理。</p>
+            </div>
+          </div>
+          <div class="top-actions">
+            <button id="exportBtn" type="button">エクスポート</button>
+            <button id="importBtn" type="button">インポート</button>
+          </div>
+        </div>
+        <div class="stats" aria-label="学習状況">
+          <div class="stat"><span>演習済み</span><strong id="doneStat">0/70</strong></div>
+          <div class="stat"><span>復習対象</span><strong id="reviewStat">0</strong></div>
+          <div class="stat"><span>平均得点</span><strong id="scoreStat">-</strong></div>
+          <div class="stat"><span>残り</span><strong id="leftStat">70</strong></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="toolbar" aria-label="絞り込み">
+        <label class="search-wrap">検索
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="searchInput" type="search" placeholder="年度・科目・メモを検索">
+        </label>
+        <label>年度
+          <select id="yearFilter"></select>
+        </label>
+        <label>科目
+          <select id="subjectFilter"></select>
+        </label>
+        <label>状態
+          <select id="statusFilter">
+            <option value="all">すべて</option>
+            <option value="left">未演習</option>
+            <option value="done">演習済み</option>
+            <option value="review">復習対象</option>
+            <option value="memo">メモあり</option>
+          </select>
+        </label>
+        <button id="clearFilters" type="button">解除</button>
+      </section>
+
+      <section id="papersView" class="view active" aria-label="過去問一覧">
+        <div id="yearList" class="year-list"></div>
+      </section>
+
+      <section id="dashboardView" class="view" aria-label="進捗">
+        <div class="dashboard">
+          <div class="panel">
+            <h2>科目別進捗</h2>
+            <div id="subjectBars" class="subject-bars"></div>
+          </div>
+          <div class="panel">
+            <h2>次にやる候補</h2>
+            <div id="todoList" class="todo-list"></div>
+          </div>
+        </div>
+        <p class="source">問題PDFおよび正解と配点は、LEC東京リーガルマインドの「過去問ダウンロードサービス」および日本中小企業診断士協会連合会が公開する資料へのリンクです。本アプリは問題本文を複製せず、学習記録と導線を提供します。</p>
+      </section>
+
+      <section id="aboutView" class="view" aria-label="使い方">
+        <div class="panel">
+          <h2>使い方</h2>
+          <p class="empty">年度と科目を選んで「問題PDF」を開き、解き終わったら「解いた」を付けます。採点後に得点とメモを残しておくと、復習対象だけに絞り込めます。PDFは公式公開元を直接開くため、アプリ内には過去問本文を再配布していません。</p>
+          <p class="empty">Androidアプリ化するときは、このWebアプリをGitHub Pagesで公開し、TWAまたはCapacitorのWebViewで包む構成にすると移植しやすいです。</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="画面切替">
+    <div class="bottom-nav-inner">
+      <button class="nav-btn active" data-view="papersView" type="button">過去問</button>
+      <button class="nav-btn" data-view="dashboardView" type="button">進捗</button>
+      <button class="nav-btn" data-view="aboutView" type="button">情報</button>
+    </div>
+  </nav>
+
+  <div id="dataModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">データ</h2>
+      <p id="modalText" class="empty"></p>
+      <textarea id="modalData"></textarea>
+      <div class="modal-actions">
+        <button id="modalClose" type="button">閉じる</button>
+        <button id="modalApply" class="primary" type="button">反映</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUBJECTS = [
+      { key: "A", name: "経済学・経済政策", short: "経済" },
+      { key: "B", name: "財務・会計", short: "財会" },
+      { key: "C", name: "企業経営理論", short: "経営" },
+      { key: "D", name: "運営管理", short: "運営" },
+      { key: "E", name: "経営法務", short: "法務" },
+      { key: "F", name: "経営情報システム", short: "情報" },
+      { key: "G", name: "中小企業経営・政策", short: "政策" }
+    ];
+
+    const YEARS = [
+      { label: "令和7年度", era: "R07", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2025/", file: k => `${k}1JI2025.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r07_shiken/R07_1ji_shiken_kaitou.html" },
+      { label: "令和6年度", era: "R06", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2024/", file: k => `${k}1JI2024.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r06_shiken/R06_1ji_shiken_kaitou.html" },
+      { label: "令和5年度", era: "R05", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2023/", file: k => `${k}1JI2023.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r05_shiken/R05_1ji_shiken_kaitou.html" },
+      { label: "令和4年度", era: "R04", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2022/", file: k => `${k}1ji2022.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r04_shiken/R04_1ji_shiken_kaitou.html" },
+      { label: "令和3年度", era: "R03", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2021/", file: k => `${k}1ji2021.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r03_shiken/R03_1ji_shiken_kaitou.html" },
+      { label: "令和2年度", era: "R02", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2020/", file: k => `${k}1ji2020.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r02_shiken/R02_1ji_shiken_kaitou.html" },
+      { label: "令和元年度", era: "R01", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2019/", file: k => `${k}1ji2019.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h31_shiken/R01_1ji_shiken_kaitou.html" },
+      { label: "平成30年度", era: "H30", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2018/", file: k => `${k}1ji2018.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h30_shiken/H30_1ji_shiken_kaitou.html" },
+      { label: "平成29年度", era: "H29", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2017/", file: k => `${k.toLowerCase()}1ji2017.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h29_shiken/H29_1ji_shiken_kaitou.html" },
+      { label: "平成28年度", era: "H28", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2016/", file: k => `${k.toLowerCase()}1ji2016.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h28_shiken/H28_1ji_shiken_kaitou.html" }
+    ];
+
+    const STORAGE_KEY = "sme-consultant-past-exam-v1";
+    const $ = (id) => document.getElementById(id);
+    const papers = YEARS.flatMap(year => SUBJECTS.map(subject => ({
+      id: `${year.era}-${subject.key}`,
+      year: year.label,
+      era: year.era,
+      subject: subject.name,
+      subjectKey: subject.key,
+      subjectShort: subject.short,
+      pdf: year.questionBase + year.file(subject.key),
+      answer: year.answer
+    })));
+
+    let records = loadRecords();
+
+    function loadRecords() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+    function recordFor(id) {
+      if (!records[id]) records[id] = { done: false, review: false, score: "", memo: "", updatedAt: "" };
+      return records[id];
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+    }
+    function currentFilters() {
+      return {
+        q: $("searchInput").value.trim().toLowerCase(),
+        year: $("yearFilter").value,
+        subject: $("subjectFilter").value,
+        status: $("statusFilter").value
+      };
+    }
+    function paperMatches(paper) {
+      const rec = recordFor(paper.id);
+      const f = currentFilters();
+      if (f.year !== "all" && paper.year !== f.year) return false;
+      if (f.subject !== "all" && paper.subject !== f.subject) return false;
+      if (f.status === "left" && rec.done) return false;
+      if (f.status === "done" && !rec.done) return false;
+      if (f.status === "review" && !rec.review) return false;
+      if (f.status === "memo" && !rec.memo.trim()) return false;
+      if (f.q) {
+        const haystack = `${paper.year} ${paper.era} ${paper.subject} ${rec.memo}`.toLowerCase();
+        if (!haystack.includes(f.q)) return false;
+      }
+      return true;
+    }
+    function setRecord(id, patch) {
+      records[id] = { ...recordFor(id), ...patch, updatedAt: new Date().toISOString() };
+      saveRecords();
+      render();
+    }
+    function saveRecordQuietly(id, patch) {
+      records[id] = { ...recordFor(id), ...patch, updatedAt: new Date().toISOString() };
+      saveRecords();
+      renderStats();
+      renderDashboard();
+    }
+    function completionForYear(yearLabel) {
+      const ids = papers.filter(p => p.year === yearLabel).map(p => p.id);
+      const done = ids.filter(id => recordFor(id).done).length;
+      return { done, total: ids.length, percent: Math.round((done / ids.length) * 100) };
+    }
+    function renderStats() {
+      const done = papers.filter(p => recordFor(p.id).done).length;
+      const review = papers.filter(p => recordFor(p.id).review).length;
+      const scores = papers.map(p => Number(recordFor(p.id).score)).filter(n => Number.isFinite(n) && n >= 0);
+      const avg = scores.length ? `${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}点` : "-";
+      $("doneStat").textContent = `${done}/${papers.length}`;
+      $("reviewStat").textContent = String(review);
+      $("scoreStat").textContent = avg;
+      $("leftStat").textContent = String(papers.length - done);
+    }
+    function renderPapers() {
+      const grouped = YEARS.map(y => ({ year: y, papers: papers.filter(p => p.year === y.label && paperMatches(p)) }))
+        .filter(group => group.papers.length > 0);
+      $("yearList").innerHTML = grouped.map(group => {
+        const progress = completionForYear(group.year.label);
+        return `
+          <article class="year-card">
+            <div class="year-head">
+              <div class="year-title">
+                <h2>${group.year.label}</h2>
+                <span>${group.year.era} / 1次試験 7科目</span>
+              </div>
+              <div class="progress" aria-label="${group.year.label}の進捗">
+                <div class="bar"><i style="width:${progress.percent}%"></i></div>
+                <strong>${progress.done}/${progress.total}</strong>
+              </div>
+            </div>
+            <div class="subjects-grid">
+              ${group.papers.map(renderPaper).join("")}
+            </div>
+            <div class="answer-row">
+              <p>採点時は同年度の「正解と配点」を開いて確認します。</p>
+              <a class="button-link primary" href="${group.year.answer}" target="_blank" rel="noopener">正解と配点</a>
+            </div>
+          </article>
+        `;
+      }).join("") || `<div class="panel"><p class="empty">条件に合う過去問がありません。絞り込みを変えてください。</p></div>`;
+    }
+    function renderPaper(paper) {
+      const rec = recordFor(paper.id);
+      const badgeClass = rec.review ? "review" : rec.done ? "done" : "";
+      const badgeText = rec.review ? "復習" : rec.done ? "済" : "未";
+      return `
+        <article class="paper" data-id="${paper.id}">
+          <div class="paper-head">
+            <div class="paper-title">
+              <strong>${paper.subject}</strong>
+              <small>${paper.era} / ${paper.subjectShort}</small>
+            </div>
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="paper-actions">
+            <a class="button-link primary" href="${paper.pdf}" target="_blank" rel="noopener">問題PDF</a>
+            <a class="button-link" href="${paper.answer}" target="_blank" rel="noopener">正解表</a>
+          </div>
+          <div class="paper-controls">
+            <div class="checks">
+              <label class="check"><input data-action="done" type="checkbox" ${rec.done ? "checked" : ""}>解いた</label>
+              <label class="check"><input data-action="review" type="checkbox" ${rec.review ? "checked" : ""}>復習</label>
+              <button class="ghost" data-action="memo-toggle" type="button">${rec.memo.trim() ? "メモ編集" : "メモ"}</button>
+            </div>
+            <label>得点
+              <input data-action="score" type="number" min="0" max="100" inputmode="numeric" value="${escapeHtml(rec.score)}" placeholder="点">
+            </label>
+          </div>
+          <div class="memo ${rec.memo.trim() ? "open" : ""}">
+            <label>メモ
+              <textarea data-action="memo" placeholder="間違えた論点、再演習日、気づきなど">${escapeHtml(rec.memo)}</textarea>
+            </label>
+          </div>
+        </article>
+      `;
+    }
+    function renderDashboard() {
+      $("subjectBars").innerHTML = SUBJECTS.map(subject => {
+        const ids = papers.filter(p => p.subjectKey === subject.key).map(p => p.id);
+        const done = ids.filter(id => recordFor(id).done).length;
+        const percent = Math.round(done / ids.length * 100);
+        return `<div class="subject-line"><strong>${subject.name}</strong><div class="bar"><i style="width:${percent}%"></i></div><span>${done}/${ids.length}</span></div>`;
+      }).join("");
+
+      const todos = papers
+        .filter(p => !recordFor(p.id).done || recordFor(p.id).review)
+        .slice(0, 8);
+      $("todoList").innerHTML = todos.map(p => {
+        const rec = recordFor(p.id);
+        return `<div class="todo"><div><strong>${p.year} ${p.subject}</strong><br><span>${rec.review ? "復習対象" : "未演習"}</span></div><a class="button-link" href="${p.pdf}" target="_blank" rel="noopener">開く</a></div>`;
+      }).join("") || `<p class="empty">すべて演習済みです。復習チェックを付けた問題がここに並びます。</p>`;
+    }
+    function render() {
+      renderStats();
+      renderPapers();
+      renderDashboard();
+    }
+    function setupControls() {
+      $("yearFilter").innerHTML = `<option value="all">すべて</option>` + YEARS.map(y => `<option>${y.label}</option>`).join("");
+      $("subjectFilter").innerHTML = `<option value="all">すべて</option>` + SUBJECTS.map(s => `<option>${s.name}</option>`).join("");
+      ["searchInput", "yearFilter", "subjectFilter", "statusFilter"].forEach(id => $(id).addEventListener("input", render));
+      $("clearFilters").addEventListener("click", () => {
+        $("searchInput").value = "";
+        $("yearFilter").value = "all";
+        $("subjectFilter").value = "all";
+        $("statusFilter").value = "all";
+        render();
+      });
+      document.body.addEventListener("change", (event) => {
+        const action = event.target.dataset.action;
+        const paper = event.target.closest(".paper");
+        if (!action || !paper) return;
+        const id = paper.dataset.id;
+        if (action === "done") setRecord(id, { done: event.target.checked });
+        if (action === "review") setRecord(id, { review: event.target.checked });
+      });
+      document.body.addEventListener("input", (event) => {
+        const action = event.target.dataset.action;
+        const paper = event.target.closest(".paper");
+        if (!action || !paper) return;
+        if (action === "score") saveRecordQuietly(paper.dataset.id, { score: event.target.value });
+        if (action === "memo") saveRecordQuietly(paper.dataset.id, { memo: event.target.value });
+      });
+      document.body.addEventListener("blur", (event) => {
+        const action = event.target.dataset.action;
+        if (action === "score" || action === "memo") render();
+      }, true);
+      document.body.addEventListener("click", (event) => {
+        const memoButton = event.target.closest("[data-action='memo-toggle']");
+        if (memoButton) memoButton.closest(".paper").querySelector(".memo").classList.toggle("open");
+      });
+      document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => {
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+        btn.classList.add("active");
+        $(btn.dataset.view).classList.add("active");
+      }));
+      setupDataModal();
+    }
+    function setupDataModal() {
+      const modal = $("dataModal");
+      $("exportBtn").addEventListener("click", () => {
+        $("modalTitle").textContent = "学習データをエクスポート";
+        $("modalText").textContent = "下のJSONを保存しておくと、別端末へ学習記録を移せます。";
+        $("modalData").value = JSON.stringify(records, null, 2);
+        $("modalApply").style.display = "none";
+        modal.classList.add("open");
+      });
+      $("importBtn").addEventListener("click", () => {
+        $("modalTitle").textContent = "学習データをインポート";
+        $("modalText").textContent = "以前エクスポートしたJSONを貼り付けて反映します。現在の記録は上書きされます。";
+        $("modalData").value = "";
+        $("modalApply").style.display = "";
+        modal.classList.add("open");
+      });
+      $("modalClose").addEventListener("click", () => modal.classList.remove("open"));
+      $("modalApply").addEventListener("click", () => {
+        try {
+          const next = JSON.parse($("modalData").value);
+          records = next && typeof next === "object" ? next : {};
+          saveRecords();
+          modal.classList.remove("open");
+          render();
+        } catch {
+          alert("JSONを読み込めませんでした。内容を確認してください。");
+        }
+      });
+      modal.addEventListener("click", event => {
+        if (event.target === modal) modal.classList.remove("open");
+      });
+    }
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+    }
+    setupControls();
+    render();
+  </script>
+</body>
+</html>
