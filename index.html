@@ -193,46 +193,46 @@ const TOPICS={
 };
 const CATEGORY_DEFS={
   economics:[
-    {id:'stats',name:'統計図表問題',note:'第1〜3問で出やすい白書・統計・物価指数系',topics:['GDPデフレーター']},
-    {id:'macro',name:'マクロ経済学',note:'GDP、IS-LM、金融・財政、為替、雇用をまとめて確認',topics:['IS-LM分析','フィリップス曲線','自動安定化装置','比較優位']},
-    {id:'micro',name:'ミクロ経済学',note:'需要供給、費用、独占、外部性、ゲーム理論',topics:['需要の価格弾力性','限界費用','外部不経済','ナッシュ均衡','独占の価格設定']},
-    {id:'applied',name:'応用・時事的論点',note:'経済時事や政策判断に絡めた変化球',topics:['比較優位','フィリップス曲線']}
+    {id:'stats',name:'統計図表問題',quota:12,note:'第1〜3問で出やすい白書・統計・物価指数系',topics:['GDPデフレーター']},
+    {id:'macro',name:'マクロ経済学',quota:36,note:'GDP、IS-LM、金融・財政、為替、雇用をまとめて確認',topics:['IS-LM分析','フィリップス曲線','自動安定化装置','比較優位']},
+    {id:'micro',name:'ミクロ経済学',quota:44,note:'需要供給、費用、独占、外部性、ゲーム理論',topics:['需要の価格弾力性','限界費用','外部不経済','ナッシュ均衡','独占の価格設定']},
+    {id:'applied',name:'応用・時事的論点',quota:8,note:'経済時事や政策判断に絡めた変化球',topics:['比較優位','フィリップス曲線']}
   ],
   finance:[
-    {id:'accounting',name:'会計・簿記',note:'財務諸表、仕訳、原価とCVP',topics:['損益分岐点','減価償却','キャッシュフロー計算書','原価差異分析']},
-    {id:'finance',name:'ファイナンス',note:'NPV、WACC、企業価値、ポートフォリオ',topics:['正味現在価値','加重平均資本コスト','企業価値評価','ポートフォリオ理論']},
-    {id:'analysis',name:'経営分析',note:'安全性・収益性・効率性の指標',topics:['流動比率']},
-    {id:'tax',name:'税務・配当政策',note:'税効果や株主還元まわり',topics:['税効果会計']}
+    {id:'accounting',name:'会計・簿記',quota:37,note:'財務諸表、仕訳、原価とCVP',topics:['損益分岐点','減価償却','キャッシュフロー計算書','原価差異分析']},
+    {id:'finance',name:'ファイナンス',quota:46,note:'NPV、WACC、企業価値、ポートフォリオ',topics:['正味現在価値','加重平均資本コスト','企業価値評価','ポートフォリオ理論']},
+    {id:'analysis',name:'経営分析',quota:10,note:'安全性・収益性・効率性の指標',topics:['流動比率']},
+    {id:'tax',name:'税務・配当政策',quota:7,note:'税効果や株主還元まわり',topics:['税効果会計']}
   ],
   strategy:[
-    {id:'strategy',name:'経営戦略',note:'競争戦略、PPM、ドメイン、資源ベース',topics:['ポーターの5フォース','VRIO分析','PPM','コア・コンピタンス']},
-    {id:'organization',name:'組織論',note:'組織構造、動機づけ、リーダーシップ',topics:['機能別組織','マズローの欲求階層説','リーダーシップ論']},
-    {id:'marketing',name:'マーケティング',note:'STP、ブランド、チャネル、サービス',topics:['STPマーケティング','ブランド・エクイティ','チャネル政策']},
-    {id:'innovation',name:'製品・イノベーション',note:'市場投入や製品ライフサイクル',topics:['製品ライフサイクル']}
+    {id:'strategy',name:'経営戦略',quota:30,note:'競争戦略、PPM、ドメイン、資源ベース',topics:['ポーターの5フォース','VRIO分析','PPM','コア・コンピタンス']},
+    {id:'organization',name:'組織論',quota:30,note:'組織構造、動機づけ、リーダーシップ',topics:['機能別組織','マズローの欲求階層説','リーダーシップ論']},
+    {id:'marketing',name:'マーケティング',quota:30,note:'STP、ブランド、チャネル、サービス',topics:['STPマーケティング','ブランド・エクイティ','チャネル政策']},
+    {id:'innovation',name:'製品・イノベーション',quota:10,note:'市場投入や製品ライフサイクル',topics:['製品ライフサイクル']}
   ],
   operations:[
-    {id:'production',name:'生産管理',note:'IE、在庫、生産方式、品質管理',topics:['ラインバランシング','ABC分析','トヨタ生産方式','品質管理']},
-    {id:'store',name:'店舗・販売管理',note:'売場、物流、MD、発注',topics:['GMROI','まちづくり三法','物流センター','発注点']},
-    {id:'layout',name:'設備・レイアウト',note:'工程設計や配置の考え方',topics:['SLP','設備総合効率']},
-    {id:'itops',name:'オペレーションIT',note:'POSやSCMなど現場情報管理',topics:['POSシステム']}
+    {id:'production',name:'生産管理',quota:50,note:'IE、在庫、生産方式、品質管理',topics:['ラインバランシング','ABC分析','トヨタ生産方式','品質管理']},
+    {id:'store',name:'店舗・販売管理',quota:30,note:'売場、物流、MD、発注',topics:['GMROI','まちづくり三法','物流センター','発注点']},
+    {id:'layout',name:'設備・レイアウト',quota:10,note:'工程設計や配置の考え方',topics:['SLP','設備総合効率']},
+    {id:'itops',name:'オペレーションIT',quota:10,note:'POSやSCMなど現場情報管理',topics:['POSシステム']}
   ],
   law:[
-    {id:'company',name:'会社法',note:'機関設計、株式、組織再編',topics:['株式会社の機関設計','種類株式','組織再編']},
-    {id:'ip',name:'知的財産法',note:'特許、商標、著作権、不競法',topics:['特許権','商標権','著作権','不正競争防止法']},
-    {id:'contract',name:'民法・取引法',note:'契約、保証、電子取引',topics:['債務不履行','保証契約','電子契約']},
-    {id:'insolvency',name:'倒産・資金調達法務',note:'再建、清算、金融商品取引',topics:['民事再生法','金融商品取引法']}
+    {id:'company',name:'会社法',quota:35,note:'機関設計、株式、組織再編',topics:['株式会社の機関設計','種類株式','組織再編']},
+    {id:'ip',name:'知的財産法',quota:30,note:'特許、商標、著作権、不競法',topics:['特許権','商標権','著作権','不正競争防止法']},
+    {id:'contract',name:'民法・取引法',quota:25,note:'契約、保証、電子取引',topics:['債務不履行','保証契約','電子契約']},
+    {id:'insolvency',name:'倒産・資金調達法務',quota:10,note:'再建、清算、金融商品取引',topics:['民事再生法','金融商品取引法']}
   ],
   it:[
-    {id:'systems',name:'情報システム基礎',note:'DB、ネットワーク、クラウド、開発',topics:['データベース正規化','TCP/IP','クラウドコンピューティング','アジャイル開発']},
-    {id:'security',name:'セキュリティ',note:'認証、暗号、マルウェア対策',topics:['情報セキュリティ','公開鍵暗号方式','二要素認証','マルウェア対策']},
-    {id:'management',name:'IT管理・統制',note:'ITIL、ERP、内部統制',topics:['ITIL','ERP','内部統制']},
-    {id:'data',name:'データ活用',note:'AI、IoT、データ分析',topics:['AIと機械学習']}
+    {id:'systems',name:'情報システム基礎',quota:35,note:'DB、ネットワーク、クラウド、開発',topics:['データベース正規化','TCP/IP','クラウドコンピューティング','アジャイル開発']},
+    {id:'security',name:'セキュリティ',quota:25,note:'認証、暗号、マルウェア対策',topics:['情報セキュリティ','公開鍵暗号方式','二要素認証','マルウェア対策']},
+    {id:'management',name:'IT管理・統制',quota:20,note:'ITIL、ERP、内部統制',topics:['ITIL','ERP','内部統制']},
+    {id:'data',name:'データ活用',quota:20,note:'AI、IoT、データ分析',topics:['AIと機械学習']}
   ],
   policy:[
-    {id:'trends',name:'中小企業経営',note:'白書、動向、事業承継、海外展開',topics:['中小企業白書','事業承継','小規模企業','海外展開']},
-    {id:'support',name:'支援施策',note:'補助金、保証、税制、設備投資支援',topics:['ものづくり補助金','信用保証制度','経営力向上計画','中小企業投資促進税制']},
-    {id:'finance',name:'資金繰り・再生',note:'融資、再生支援、経営改善',topics:['日本政策金融公庫','経営改善計画']},
-    {id:'innovation',name:'創業・革新',note:'創業支援や新連携',topics:['創業支援','新連携']}
+    {id:'trends',name:'中小企業経営',quota:35,note:'白書、動向、事業承継、海外展開',topics:['中小企業白書','事業承継','小規模企業','海外展開']},
+    {id:'support',name:'支援施策',quota:35,note:'補助金、保証、税制、設備投資支援',topics:['ものづくり補助金','信用保証制度','経営力向上計画','中小企業投資促進税制']},
+    {id:'finance',name:'資金繰り・再生',quota:15,note:'融資、再生支援、経営改善',topics:['日本政策金融公庫','経営改善計画']},
+    {id:'innovation',name:'創業・革新',quota:15,note:'創業支援や新連携',topics:['創業支援','新連携']}
   ]
 };
 const STEMS=[
@@ -248,8 +248,9 @@ const STEMS=[
   t=>`「${t}」について、診断士試験の基本知識として正しいものはどれか。`
 ];
 function shuffle(a,seed){const x=[...a];let s=seed+17;for(let i=x.length-1;i>0;i--){s=(s*9301+49297)%233280;const j=s%(i+1);[x[i],x[j]]=[x[j],x[i]]}return x}
-function categoryFor(subject,topic){return (CATEGORY_DEFS[subject]||[]).find(c=>c.topics.includes(topic))||{id:'other',name:'その他',note:'横断論点',topics:[]}}
-function buildQuestions(){return SUBJECTS.flatMap(sub=>{const seeds=TOPICS[sub.id];const out=[];for(let i=0;i<100;i++){const seed=seeds[i%seeds.length], stem=STEMS[Math.floor(i/seeds.length)%STEMS.length](seed[0]), cat=categoryFor(sub.id,seed[0]);const choices=shuffle([seed[1],...seed[2]],i+sub.id.length);out.push({id:`${sub.id}-${String(i+1).padStart(3,'0')}`,subject:sub.id,subjectName:sub.name,no:i+1,topic:seed[0],category:cat.id,categoryName:cat.name,question:stem,choices,answer:seed[1],explain:`${seed[0]}: ${seed[3]}`})}return out})}
+function categoryFor(subject,topic){return (CATEGORY_DEFS[subject]||[]).find(c=>c.topics.includes(topic))||{id:'other',name:'その他',quota:0,note:'横断論点',topics:[]}}
+function topicSeed(subject,topic){return TOPICS[subject].find(seed=>seed[0]===topic)||TOPICS[subject][0]}
+function buildQuestions(){return SUBJECTS.flatMap(sub=>{const cats=CATEGORY_DEFS[sub.id]||[],out=[];let no=1;cats.forEach((cat,catIndex)=>{for(let i=0;i<cat.quota;i++){const seed=topicSeed(sub.id,cat.topics[i%cat.topics.length]), stem=STEMS[Math.floor(i/cat.topics.length)%STEMS.length](seed[0]), choices=shuffle([seed[1],...seed[2]],no+catIndex+sub.id.length);out.push({id:`${sub.id}-${String(no).padStart(3,'0')}`,subject:sub.id,subjectName:sub.name,no:no++,topic:seed[0],category:cat.id,categoryName:cat.name,question:stem,choices,answer:seed[1],explain:`${seed[0]}: ${seed[3]}`})}});return out})}
 const YEARS=[
   ['令和7年度','R07','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2025/',k=>`${k}1JI2025.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r07_shiken/R07_1ji_shiken_kaitou.html'],
   ['令和6年度','R06','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2024/',k=>`${k}1JI2024.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r06_shiken/R06_1ji_shiken_kaitou.html'],
@@ -281,7 +282,7 @@ function renderSide(){const subQs=QUESTIONS.filter(q=>q.subject===activeSubject)
 function renderPast(){const fy=pastYear.value,fs=pastSubject.value,st=pastStatus.value;const groups=YEARS.map(y=>({year:y,items:PAST.filter(p=>p.year===y[0]&&(fy==='all'||p.year===fy)&&(fs==='all'||p.subject===fs)&&matchPastStatus(p,st))})).filter(g=>g.items.length);yearList.innerHTML=groups.map(g=>`<article class="card year-card"><div class="year-head"><div><h2>${g.year[0]}</h2><p class="small">${g.year[1]} / 1次試験</p></div><a class="linkbtn primary" href="${g.year[4]}" target="_blank">正解と配点</a></div><div class="papers">${g.items.map(paperHtml).join('')}</div><div class="answer-row"><span class="small">公式PDFを開いて演習し、終わったらチェックを残します。</span><a class="linkbtn" href="${g.year[4]}" target="_blank">正解表</a></div></article>`).join('')||'<p class="small">条件に合う過去問がありません。</p>';document.querySelectorAll('[data-past-action]').forEach(el=>el.onchange=()=>{const r=prec(el.dataset.id);r[el.dataset.pastAction]=el.checked;save();renderAll()})}
 function matchPastStatus(p,st){const r=prec(p.id);return st==='all'||(st==='left'&&!r.done)||(st==='done'&&r.done)||(st==='review'&&r.review)}function paperHtml(p){const r=prec(p.id);return `<div class="paper"><div><div class="paper-title">${p.subject}</div><div class="small">${p.era}</div></div><div class="paper-actions"><a class="linkbtn primary" href="${p.pdf}" target="_blank">問題PDF</a><a class="linkbtn" href="${p.answer}" target="_blank">正解表</a></div><div class="row"><label class="check"><input data-past-action="done" data-id="${p.id}" type="checkbox" ${r.done?'checked':''}>解いた</label><label class="check"><input data-past-action="review" data-id="${p.id}" type="checkbox" ${r.review?'checked':''}>復習</label></div></div>`}
 function renderResults(){quizBars.innerHTML=SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id),d=qs.filter(q=>rec(q.id).seen).length,p=Math.round(d/100*100);return `<div class="barline"><strong>${s.name}</strong><div class="progress"><i style="width:${p}%"></i></div><span>${d}/100</span></div>`}).join('');pastBars.innerHTML=SUBJECTS.map(s=>{const ps=PAST.filter(p=>p.key===s.id),d=ps.filter(p=>prec(p.id).done).length,p=Math.round(d/10*100);return `<div class="barline"><strong>${s.name}</strong><div class="progress"><i style="width:${p}%"></i></div><span>${d}/10</span></div>`}).join('')}
-function renderGenreList(){const subject=quizSubject.value,defs=CATEGORY_DEFS[subject]||[],all=QUESTIONS.filter(q=>q.subject===subject);const cards=[{id:'all',name:'全ジャンル',note:'この科目全体から出題',topics:[]}].concat(defs);genreList.innerHTML=cards.map(g=>{const qs=g.id==='all'?all:all.filter(q=>q.category===g.id),seen=qs.filter(q=>rec(q.id).seen).length,flags=qs.filter(q=>rec(q.id).flag).length;return `<button class="genre-card ${activeGenre===g.id?'active':''}" data-genre="${g.id}" type="button"><strong>${g.name}</strong><span>${g.note}</span><span class="pill">${qs.length}問 / 初見${qs.length-seen} / 🚩${flags}</span></button>`}).join('')}
+function renderGenreList(){const subject=quizSubject.value,defs=CATEGORY_DEFS[subject]||[],all=QUESTIONS.filter(q=>q.subject===subject);const cards=[{id:'all',name:'全ジャンル',quota:100,note:'実際の出題配分に寄せた100問セット',topics:[]}].concat(defs);genreList.innerHTML=cards.map(g=>{const qs=g.id==='all'?all:all.filter(q=>q.category===g.id),seen=qs.filter(q=>rec(q.id).seen).length,flags=qs.filter(q=>rec(q.id).flag).length;return `<button class="genre-card ${activeGenre===g.id?'active':''}" data-genre="${g.id}" type="button"><strong>${g.name}</strong><span>${g.note}</span><span class="pill">配分${g.quota}% / ${qs.length}問 / 初見${qs.length-seen} / 🚩${flags}</span></button>`}).join('')}
 function renderWeak(){const weak=QUESTIONS.filter(q=>rec(q.id).flag);weakList.innerHTML=weak.map(q=>`<div class="weak-item"><div><strong>🚩 ${q.subjectName} No.${q.no}</strong><div class="small">${q.categoryName} / ${q.topic}</div></div><button class="btn" onclick="quizSubject.value='${q.subject}';activeGenre='${q.category}';quizOrder.value='sequential';quizLimit.value='10';showTab('quiz');quizStarted=true;set=QUESTIONS.filter(x=>x.subject==='${q.subject}'&&x.category==='${q.category}');idx=set.findIndex(x=>x.no===${q.no});currentResult=null;renderQuiz()">開く</button></div>`).join('')||'<p class="small">フラグ付き問題はまだありません。</p>'}
 function renderAll(){renderSide();renderPast();renderResults();renderWeak();renderGenreList()}init();
 </script>
