@@ -1,640 +1,225 @@
-<!doctype html>
-<html lang="ja">
+﻿<!doctype html>
+<html lang="ja" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#17413a">
-  <meta name="description" content="中小企業診断士1次試験の過去10年分PDFを年度・科目別に開き、解答状況、得点、復習メモを管理できる演習アプリ。">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="description" content="中小企業診断士1次試験の通常問題700問と過去問PDF演習をまとめた学習アプリ。">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <title>診断士 過去問演習</title>
+  <title>診断士 Practice</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f4f6f1;
-      --surface: #ffffff;
-      --surface-soft: #eef3ea;
-      --ink: #14211d;
-      --muted: #63736c;
-      --line: #d9e2d4;
-      --brand: #17413a;
-      --brand-2: #2e7358;
-      --brand-soft: #e1efe6;
-      --warn: #8a5a18;
-      --warn-soft: #fff2d4;
-      --danger: #a43b35;
-      --danger-soft: #f9e4e1;
-      --shadow: 0 14px 34px rgba(25, 43, 35, .08);
-      --radius: 8px;
-    }
-    * { box-sizing: border-box; }
-    html { background: var(--bg); color: var(--ink); font-family: "Yu Gothic", "Meiryo", system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; background: var(--bg); }
-    a { color: inherit; }
-    button, input, select, textarea { font: inherit; }
-    button, .button-link {
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      background: var(--surface);
-      color: var(--ink);
-      min-height: 42px;
-      padding: 9px 12px;
-      font-weight: 700;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-    }
-    button:hover, .button-link:hover { background: var(--surface-soft); }
-    button.primary, .button-link.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-    button.ghost { border-color: transparent; background: transparent; color: var(--brand); }
-    input, select, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      background: var(--surface);
-      color: var(--ink);
-      padding: 10px 11px;
-    }
-    textarea { min-height: 74px; resize: vertical; }
-    label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
-    .app { min-height: 100vh; padding-bottom: 78px; }
-    .top {
-      background: linear-gradient(130deg, #17413a, #2e7358 58%, #657c4a);
-      color: #fff;
-      padding: 22px 18px 26px;
-    }
-    .top-inner { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
-    .brand-row { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
-    .brand-mark { display: flex; gap: 11px; align-items: center; min-width: 0; }
-    .logo {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      background: rgba(255,255,255,.14);
-      border: 1px solid rgba(255,255,255,.28);
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      font-weight: 800;
-    }
-    h1 { margin: 0; font-size: clamp(22px, 5vw, 34px); line-height: 1.25; letter-spacing: 0; }
-    .subtitle { margin: 5px 0 0; color: rgba(255,255,255,.78); line-height: 1.7; }
-    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .top-actions button { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
-    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-    .stat {
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: var(--radius);
-      padding: 12px;
-      min-width: 0;
-    }
-    .stat span { display: block; font-size: 12px; color: rgba(255,255,255,.74); }
-    .stat strong { display: block; margin-top: 2px; font-size: 24px; line-height: 1.2; }
-    .shell { max-width: 1180px; margin: 0 auto; padding: 18px; }
-    .toolbar {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-      grid-template-columns: 1.2fr .9fr .9fr .9fr auto;
-      align-items: end;
-      margin-top: -28px;
-      position: relative;
-      z-index: 2;
-    }
-    .search-wrap { position: relative; }
-    .search-wrap input { padding-left: 36px; }
-    .search-wrap svg { position: absolute; left: 11px; bottom: 12px; color: var(--muted); }
-    .view { display: none; margin-top: 18px; }
-    .view.active { display: block; }
-    .year-list { display: grid; gap: 14px; }
-    .year-card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .year-head {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background: #fbfcfa;
-    }
-    .year-title { display: grid; gap: 3px; }
-    .year-title h2 { margin: 0; font-size: 20px; line-height: 1.3; }
-    .year-title span { color: var(--muted); font-size: 13px; }
-    .progress { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; min-width: 160px; }
-    .bar { height: 9px; background: var(--surface-soft); border-radius: 999px; overflow: hidden; flex: 1; }
-    .bar > i { display: block; height: 100%; width: 0%; background: var(--brand-2); }
-    .subjects-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .paper {
-      padding: 14px;
-      border-right: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      display: grid;
-      gap: 12px;
-      min-width: 0;
-    }
-    .paper:nth-child(2n) { border-right: 0; }
-    .paper-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .paper-title { min-width: 0; }
-    .paper-title strong { display: block; line-height: 1.4; }
-    .paper-title small { display: block; color: var(--muted); margin-top: 2px; }
-    .badge {
-      border-radius: 999px;
-      padding: 4px 8px;
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-      background: var(--surface-soft);
-      color: var(--muted);
-    }
-    .badge.done { background: var(--brand-soft); color: var(--brand); }
-    .badge.review { background: var(--warn-soft); color: var(--warn); }
-    .paper-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .paper-actions .button-link { min-width: 0; }
-    .paper-controls {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(84px, 120px);
-      gap: 10px;
-      align-items: end;
-    }
-    .checks { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .check { display: inline-flex; gap: 7px; align-items: center; color: var(--ink); font-size: 13px; font-weight: 700; }
-    .check input { width: 18px; height: 18px; padding: 0; }
-    .memo { display: none; }
-    .memo.open { display: block; }
-    .answer-row {
-      padding: 14px 16px;
-      background: #fbfcfa;
-      display: flex;
-      gap: 10px;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .answer-row p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
-    .dashboard { display: grid; grid-template-columns: 1fr 360px; gap: 14px; }
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px;
-    }
-    .panel h2 { margin: 0 0 12px; font-size: 18px; }
-    .subject-bars { display: grid; gap: 12px; }
-    .subject-line { display: grid; grid-template-columns: 155px 1fr 48px; gap: 10px; align-items: center; font-size: 13px; }
-    .todo-list { display: grid; gap: 8px; }
-    .todo {
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      align-items: center;
-    }
-    .todo span { color: var(--muted); font-size: 12px; }
-    .empty { color: var(--muted); line-height: 1.7; margin: 0; }
-    .source {
-      margin-top: 18px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.8;
-    }
-    .bottom-nav {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255,255,255,.94);
-      border-top: 1px solid var(--line);
-      backdrop-filter: blur(12px);
-      z-index: 10;
-      padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-    }
-    .bottom-nav-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .nav-btn { min-height: 48px; display: grid; gap: 2px; justify-items: center; align-content: center; padding: 6px 8px; font-size: 12px; }
-    .nav-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(10, 20, 18, .48);
-      z-index: 20;
-      display: none;
-      place-items: center;
-      padding: 18px;
-    }
-    .modal-backdrop.open { display: grid; }
-    .modal {
-      width: min(680px, 100%);
-      background: var(--surface);
-      border-radius: var(--radius);
-      box-shadow: 0 30px 80px rgba(0,0,0,.22);
-      padding: 18px;
-      display: grid;
-      gap: 12px;
-    }
-    .modal h2 { margin: 0; font-size: 20px; }
-    .modal textarea { min-height: 180px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-    @media (max-width: 980px) {
-      .toolbar { grid-template-columns: 1fr 1fr; }
-      .toolbar > button { grid-column: span 2; }
-      .dashboard { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 720px) {
-      .top { padding: 18px 14px 28px; }
-      .brand-row { display: grid; }
-      .top-actions { justify-content: flex-start; }
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .shell { padding: 14px; }
-      .toolbar { grid-template-columns: 1fr; margin-top: -22px; }
-      .toolbar > button { grid-column: auto; }
-      .subjects-grid { grid-template-columns: 1fr; }
-      .paper { border-right: 0; }
-      .paper-controls { grid-template-columns: 1fr; }
-      .year-head { display: grid; }
-      .progress { min-width: 0; }
-      .subject-line { grid-template-columns: 1fr; gap: 5px; }
-    }
+    :root{--background:#0f1115;--card:#181b22;--surface:#11141a;--text:#eaecef;--subtle:#c9ced8;--muted:#9aa3b2;--accent:#c9a227;--correct:#2e7d5b;--wrong:#8a2d2d;--border:#ffffff14;--hover:#ffffff0d;--accent-soft:#c9a22724;--shadow:0 18px 60px rgba(0,0,0,.12)}
+    :root[data-theme=light]{--background:#f7f8fa;--card:#fff;--surface:#f0f2f5;--text:#171a20;--subtle:#3e4653;--muted:#687283;--accent:#9a7618;--correct:#2e7d5b;--wrong:#8a2d2d;--border:#1218201a;--hover:#1218200d;--accent-soft:#9a76181f}
+    *{box-sizing:border-box}html{background:var(--background);color:var(--text);font-family:Arial,"Yu Gothic",Meiryo,sans-serif}body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% 0,var(--accent-soft),transparent 28rem),linear-gradient(180deg,var(--surface) 0,var(--background) 38%);letter-spacing:0}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}.app{width:100%;max-width:80rem;margin:0 auto;min-height:100vh;padding:1.5rem 1.25rem 2rem}.header{display:flex;justify-content:space-between;gap:1.25rem;align-items:flex-start;border-bottom:1px solid var(--border);padding-bottom:1.25rem}.kicker{margin:0;color:var(--accent);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em}.title{margin:.5rem 0 0;font-size:clamp(1.5rem,4vw,1.9rem);line-height:1.25;font-weight:700}.lead{margin:.5rem 0 0;color:var(--muted);line-height:1.7;font-size:.92rem}.head-actions{display:flex;align-items:center;gap:.75rem}.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--border);background:var(--card);border-radius:.5rem;padding:.25rem}.tab{height:2.5rem;border:0;border-radius:.375rem;background:transparent;color:var(--muted);font-weight:700;padding:0 .75rem;white-space:nowrap}.tab.active{background:var(--accent);color:var(--background)}.icon-btn{display:grid;place-items:center;width:2.75rem;height:2.75rem;border:1px solid var(--border);border-radius:.5rem;background:var(--card);color:var(--muted)}.grid{display:grid;grid-template-columns:minmax(0,1fr) 20rem;gap:1.5rem;margin-top:2rem;align-items:start}.card{background:var(--card);border:1px solid var(--border);border-radius:.5rem;box-shadow:var(--shadow)}.card.pad{padding:1.5rem}.section{display:none}.section.active{display:block}.row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}.between{display:flex;justify-content:space-between;gap:1rem;align-items:center}.small{font-size:.8rem;color:var(--muted);line-height:1.6}.pill{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;padding:.25rem .65rem;font-size:.75rem;color:var(--muted);background:var(--surface)}.statgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.stat{padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:.5rem}.stat span{display:block;color:var(--muted);font-size:.75rem}.stat strong{display:block;margin-top:.25rem;font-size:1.55rem}.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem}.field{display:grid;gap:.4rem;color:var(--muted);font-size:.75rem;font-weight:700}.select,.input,.textarea{width:100%;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);padding:.7rem .75rem;outline:none}.textarea{min-height:5.5rem;resize:vertical}.quiz-meta{display:flex;justify-content:space-between;gap:1rem;color:var(--muted);font-size:.85rem;margin-bottom:1rem}.question{font-size:1.35rem;line-height:1.75;font-weight:700;white-space:pre-line;margin:1rem 0 1.25rem}.choices{display:grid;gap:.75rem}.choice{width:100%;text-align:left;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);padding:1rem;line-height:1.65;color:var(--text);transition:.15s}.choice:hover{border-color:var(--accent);background:var(--hover)}.choice.correct{border-color:var(--correct);background:color-mix(in oklab,var(--correct) 18%,transparent)}.choice.wrong{border-color:var(--wrong);background:color-mix(in oklab,var(--wrong) 18%,transparent)}.explain{display:none;margin-top:1rem;border:1px solid var(--border);background:var(--surface);border-radius:.5rem;padding:1rem;line-height:1.8;color:var(--subtle)}.explain.show{display:block}.actions{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-top:1rem}.btn,.linkbtn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.5rem;border:1px solid var(--border);border-radius:.5rem;background:var(--card);color:var(--text);font-weight:700;padding:.55rem .9rem;text-decoration:none}.btn:hover,.linkbtn:hover{background:var(--hover)}.btn.primary,.linkbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--background)}.btn:disabled{cursor:not-allowed;opacity:.45}.progress{height:.5rem;border-radius:999px;background:var(--surface);overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}.side{display:grid;gap:1rem}.subject-list{display:grid;gap:.5rem}.subject-btn{display:flex;justify-content:space-between;gap:.75rem;align-items:center;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);padding:.75rem;color:var(--text);text-align:left}.subject-btn.active{border-color:var(--accent);background:var(--accent-soft)}.past-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem}.year-list{display:grid;gap:1rem}.year-card{overflow:hidden}.year-head{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:1rem;align-items:center}.year-head h2{margin:0;font-size:1.15rem}.papers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.paper{padding:1rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);display:grid;gap:.75rem}.paper:nth-child(2n){border-right:0}.paper-title{font-weight:700;line-height:1.5}.paper-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.check{display:inline-flex;align-items:center;gap:.4rem;color:var(--muted);font-weight:700;font-size:.82rem}.check input{width:1rem;height:1rem}.answer-row{padding:1rem 1.25rem;background:var(--surface);display:flex;justify-content:space-between;gap:1rem;align-items:center}.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.barline{display:grid;grid-template-columns:9rem 1fr 4rem;gap:.75rem;align-items:center;font-size:.85rem;margin:.75rem 0}.weak-list{display:grid;gap:.6rem}.weak-item{border:1px solid var(--border);border-radius:.5rem;background:var(--surface);padding:.8rem;display:flex;justify-content:space-between;gap:.75rem;align-items:center}.modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);padding:1rem;z-index:10}.modal.open{display:grid}.modal-box{width:min(42rem,100%);background:var(--card);border:1px solid var(--border);border-radius:.5rem;padding:1.25rem}.modal-box h2{margin:0 0 .75rem}.modal-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:.75rem}.hide{display:none!important}@media(max-width:58rem){.header{display:grid}.head-actions{justify-content:space-between}.grid{grid-template-columns:1fr}.controls,.past-toolbar,.results-grid{grid-template-columns:1fr}.papers{grid-template-columns:1fr}.paper{border-right:0}.tabs{width:100%;overflow:auto}.tab{padding:0 .55rem;font-size:.85rem}.app{padding:1rem}.question{font-size:1.1rem}.barline{grid-template-columns:1fr}.side{order:-1}}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="top">
-      <div class="top-inner">
-        <div class="brand-row">
-          <div class="brand-mark">
-            <div class="logo" aria-hidden="true">診</div>
-            <div>
-              <h1>診断士 過去問演習</h1>
-              <p class="subtitle">中小企業診断士1次試験、令和7年度から平成28年度までの過去10年分を年度・科目別に整理。</p>
-            </div>
-          </div>
-          <div class="top-actions">
-            <button id="exportBtn" type="button">エクスポート</button>
-            <button id="importBtn" type="button">インポート</button>
-          </div>
+<main class="app">
+  <header class="header">
+    <div>
+      <p class="kicker">SME Management Consultant</p>
+      <h1 class="title">診断士 Practice</h1>
+      <p class="lead">1次試験7科目の通常問題700問と、過去10年分の公式過去問PDFをまとめて演習できます。</p>
+    </div>
+    <div class="head-actions">
+      <nav class="tabs" aria-label="画面切替">
+        <button class="tab active" data-tab="quiz">Quiz</button>
+        <button class="tab" data-tab="past">Past Exams</button>
+        <button class="tab" data-tab="results">Results</button>
+        <button class="tab" data-tab="weak">Weak</button>
+      </nav>
+      <button id="themeBtn" class="icon-btn" title="Theme" aria-label="Theme">⚙</button>
+    </div>
+  </header>
+
+  <section id="quiz" class="section active">
+    <div class="grid">
+      <div class="card pad">
+        <div class="controls">
+          <label class="field">科目<select id="quizSubject" class="select"></select></label>
+          <label class="field">出題<select id="quizMode" class="select"><option value="all">全100問</option><option value="random">ランダム</option><option value="weak">間違えた問題</option><option value="star">スター付き</option></select></label>
+          <label class="field">開始番号<input id="startNo" class="input" type="number" min="1" max="100" value="1"></label>
         </div>
-        <div class="stats" aria-label="学習状況">
-          <div class="stat"><span>演習済み</span><strong id="doneStat">0/70</strong></div>
-          <div class="stat"><span>復習対象</span><strong id="reviewStat">0</strong></div>
-          <div class="stat"><span>平均得点</span><strong id="scoreStat">-</strong></div>
-          <div class="stat"><span>残り</span><strong id="leftStat">70</strong></div>
+        <div class="quiz-meta"><span id="quizMeta">-</span><span id="quizCount">-</span></div>
+        <div class="progress"><i id="quizProgress"></i></div>
+        <div id="questionText" class="question"></div>
+        <div id="choices" class="choices"></div>
+        <div id="explain" class="explain"></div>
+        <div class="actions">
+          <div class="row"><button id="prevBtn" class="btn">Prev</button><button id="nextBtn" class="btn primary">Next</button></div>
+          <div class="row"><button id="starBtn" class="btn">Star</button><button id="restartBtn" class="btn">Restart</button></div>
         </div>
       </div>
-    </header>
-
-    <main class="shell">
-      <section class="toolbar" aria-label="絞り込み">
-        <label class="search-wrap">検索
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <input id="searchInput" type="search" placeholder="年度・科目・メモを検索">
-        </label>
-        <label>年度
-          <select id="yearFilter"></select>
-        </label>
-        <label>科目
-          <select id="subjectFilter"></select>
-        </label>
-        <label>状態
-          <select id="statusFilter">
-            <option value="all">すべて</option>
-            <option value="left">未演習</option>
-            <option value="done">演習済み</option>
-            <option value="review">復習対象</option>
-            <option value="memo">メモあり</option>
-          </select>
-        </label>
-        <button id="clearFilters" type="button">解除</button>
-      </section>
-
-      <section id="papersView" class="view active" aria-label="過去問一覧">
-        <div id="yearList" class="year-list"></div>
-      </section>
-
-      <section id="dashboardView" class="view" aria-label="進捗">
-        <div class="dashboard">
-          <div class="panel">
-            <h2>科目別進捗</h2>
-            <div id="subjectBars" class="subject-bars"></div>
-          </div>
-          <div class="panel">
-            <h2>次にやる候補</h2>
-            <div id="todoList" class="todo-list"></div>
-          </div>
-        </div>
-        <p class="source">問題PDFおよび正解と配点は、LEC東京リーガルマインドの「過去問ダウンロードサービス」および日本中小企業診断士協会連合会が公開する資料へのリンクです。本アプリは問題本文を複製せず、学習記録と導線を提供します。</p>
-      </section>
-
-      <section id="aboutView" class="view" aria-label="使い方">
-        <div class="panel">
-          <h2>使い方</h2>
-          <p class="empty">年度と科目を選んで「問題PDF」を開き、解き終わったら「解いた」を付けます。採点後に得点とメモを残しておくと、復習対象だけに絞り込めます。PDFは公式公開元を直接開くため、アプリ内には過去問本文を再配布していません。</p>
-          <p class="empty">Androidアプリ化するときは、このWebアプリをGitHub Pagesで公開し、TWAまたはCapacitorのWebViewで包む構成にすると移植しやすいです。</p>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <nav class="bottom-nav" aria-label="画面切替">
-    <div class="bottom-nav-inner">
-      <button class="nav-btn active" data-view="papersView" type="button">過去問</button>
-      <button class="nav-btn" data-view="dashboardView" type="button">進捗</button>
-      <button class="nav-btn" data-view="aboutView" type="button">情報</button>
+      <aside class="side">
+        <div class="card pad"><div class="statgrid"><div class="stat"><span>正答率</span><strong id="rateStat">0%</strong></div><div class="stat"><span>解答済み</span><strong id="answeredStat">0</strong></div><div class="stat"><span>弱点</span><strong id="missStat">0</strong></div><div class="stat"><span>総問題</span><strong>700</strong></div></div></div>
+        <div class="card pad"><div class="between"><strong>Subjects</strong><span class="pill">各100問</span></div><div id="subjectList" class="subject-list" style="margin-top:1rem"></div></div>
+      </aside>
     </div>
-  </nav>
+  </section>
 
-  <div id="dataModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <h2 id="modalTitle">データ</h2>
-      <p id="modalText" class="empty"></p>
-      <textarea id="modalData"></textarea>
-      <div class="modal-actions">
-        <button id="modalClose" type="button">閉じる</button>
-        <button id="modalApply" class="primary" type="button">反映</button>
+  <section id="past" class="section">
+    <div class="card pad">
+      <div class="past-toolbar">
+        <label class="field">年度<select id="pastYear" class="select"></select></label>
+        <label class="field">科目<select id="pastSubject" class="select"></select></label>
+        <label class="field">状態<select id="pastStatus" class="select"><option value="all">すべて</option><option value="left">未演習</option><option value="done">演習済み</option><option value="review">復習</option></select></label>
       </div>
+      <div id="yearList" class="year-list"></div>
     </div>
-  </div>
+  </section>
 
-  <script>
-    const SUBJECTS = [
-      { key: "A", name: "経済学・経済政策", short: "経済" },
-      { key: "B", name: "財務・会計", short: "財会" },
-      { key: "C", name: "企業経営理論", short: "経営" },
-      { key: "D", name: "運営管理", short: "運営" },
-      { key: "E", name: "経営法務", short: "法務" },
-      { key: "F", name: "経営情報システム", short: "情報" },
-      { key: "G", name: "中小企業経営・政策", short: "政策" }
-    ];
+  <section id="results" class="section">
+    <div class="results-grid">
+      <div class="card pad"><h2>通常問題 科目別</h2><div id="quizBars"></div></div>
+      <div class="card pad"><h2>過去問 進捗</h2><div id="pastBars"></div></div>
+    </div>
+  </section>
 
-    const YEARS = [
-      { label: "令和7年度", era: "R07", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2025/", file: k => `${k}1JI2025.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r07_shiken/R07_1ji_shiken_kaitou.html" },
-      { label: "令和6年度", era: "R06", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2024/", file: k => `${k}1JI2024.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r06_shiken/R06_1ji_shiken_kaitou.html" },
-      { label: "令和5年度", era: "R05", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2023/", file: k => `${k}1JI2023.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r05_shiken/R05_1ji_shiken_kaitou.html" },
-      { label: "令和4年度", era: "R04", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2022/", file: k => `${k}1ji2022.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r04_shiken/R04_1ji_shiken_kaitou.html" },
-      { label: "令和3年度", era: "R03", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2021/", file: k => `${k}1ji2021.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r03_shiken/R03_1ji_shiken_kaitou.html" },
-      { label: "令和2年度", era: "R02", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2020/", file: k => `${k}1ji2020.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_r02_shiken/R02_1ji_shiken_kaitou.html" },
-      { label: "令和元年度", era: "R01", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2019/", file: k => `${k}1ji2019.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h31_shiken/R01_1ji_shiken_kaitou.html" },
-      { label: "平成30年度", era: "H30", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2018/", file: k => `${k}1ji2018.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h30_shiken/H30_1ji_shiken_kaitou.html" },
-      { label: "平成29年度", era: "H29", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2017/", file: k => `${k.toLowerCase()}1ji2017.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h29_shiken/H29_1ji_shiken_kaitou.html" },
-      { label: "平成28年度", era: "H28", questionBase: "https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2016/", file: k => `${k.toLowerCase()}1ji2016.pdf`, answer: "https://www.jf-cmca.jp/contents/010_c_/010_c_h28_shiken/H28_1ji_shiken_kaitou.html" }
-    ];
+  <section id="weak" class="section">
+    <div class="card pad"><div class="between"><h2>Weak Questions</h2><button id="clearWeakBtn" class="btn">正解済みを整理</button></div><div id="weakList" class="weak-list" style="margin-top:1rem"></div></div>
+  </section>
+</main>
 
-    const STORAGE_KEY = "sme-consultant-past-exam-v1";
-    const $ = (id) => document.getElementById(id);
-    const papers = YEARS.flatMap(year => SUBJECTS.map(subject => ({
-      id: `${year.era}-${subject.key}`,
-      year: year.label,
-      era: year.era,
-      subject: subject.name,
-      subjectKey: subject.key,
-      subjectShort: subject.short,
-      pdf: year.questionBase + year.file(subject.key),
-      answer: year.answer
-    })));
+<div id="dataModal" class="modal"><div class="modal-box"><h2>Settings</h2><p class="small">学習記録はこの端末のブラウザに保存されます。</p><textarea id="dataBox" class="textarea"></textarea><div class="modal-actions"><button id="exportBtn" class="btn">Export</button><button id="importBtn" class="btn">Import</button><button id="closeModal" class="btn primary">Close</button></div></div></div>
 
-    let records = loadRecords();
-
-    function loadRecords() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
-      catch { return {}; }
-    }
-    function saveRecords() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    }
-    function recordFor(id) {
-      if (!records[id]) records[id] = { done: false, review: false, score: "", memo: "", updatedAt: "" };
-      return records[id];
-    }
-    function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
-    }
-    function currentFilters() {
-      return {
-        q: $("searchInput").value.trim().toLowerCase(),
-        year: $("yearFilter").value,
-        subject: $("subjectFilter").value,
-        status: $("statusFilter").value
-      };
-    }
-    function paperMatches(paper) {
-      const rec = recordFor(paper.id);
-      const f = currentFilters();
-      if (f.year !== "all" && paper.year !== f.year) return false;
-      if (f.subject !== "all" && paper.subject !== f.subject) return false;
-      if (f.status === "left" && rec.done) return false;
-      if (f.status === "done" && !rec.done) return false;
-      if (f.status === "review" && !rec.review) return false;
-      if (f.status === "memo" && !rec.memo.trim()) return false;
-      if (f.q) {
-        const haystack = `${paper.year} ${paper.era} ${paper.subject} ${rec.memo}`.toLowerCase();
-        if (!haystack.includes(f.q)) return false;
-      }
-      return true;
-    }
-    function setRecord(id, patch) {
-      records[id] = { ...recordFor(id), ...patch, updatedAt: new Date().toISOString() };
-      saveRecords();
-      render();
-    }
-    function saveRecordQuietly(id, patch) {
-      records[id] = { ...recordFor(id), ...patch, updatedAt: new Date().toISOString() };
-      saveRecords();
-      renderStats();
-      renderDashboard();
-    }
-    function completionForYear(yearLabel) {
-      const ids = papers.filter(p => p.year === yearLabel).map(p => p.id);
-      const done = ids.filter(id => recordFor(id).done).length;
-      return { done, total: ids.length, percent: Math.round((done / ids.length) * 100) };
-    }
-    function renderStats() {
-      const done = papers.filter(p => recordFor(p.id).done).length;
-      const review = papers.filter(p => recordFor(p.id).review).length;
-      const scores = papers.map(p => Number(recordFor(p.id).score)).filter(n => Number.isFinite(n) && n >= 0);
-      const avg = scores.length ? `${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}点` : "-";
-      $("doneStat").textContent = `${done}/${papers.length}`;
-      $("reviewStat").textContent = String(review);
-      $("scoreStat").textContent = avg;
-      $("leftStat").textContent = String(papers.length - done);
-    }
-    function renderPapers() {
-      const grouped = YEARS.map(y => ({ year: y, papers: papers.filter(p => p.year === y.label && paperMatches(p)) }))
-        .filter(group => group.papers.length > 0);
-      $("yearList").innerHTML = grouped.map(group => {
-        const progress = completionForYear(group.year.label);
-        return `
-          <article class="year-card">
-            <div class="year-head">
-              <div class="year-title">
-                <h2>${group.year.label}</h2>
-                <span>${group.year.era} / 1次試験 7科目</span>
-              </div>
-              <div class="progress" aria-label="${group.year.label}の進捗">
-                <div class="bar"><i style="width:${progress.percent}%"></i></div>
-                <strong>${progress.done}/${progress.total}</strong>
-              </div>
-            </div>
-            <div class="subjects-grid">
-              ${group.papers.map(renderPaper).join("")}
-            </div>
-            <div class="answer-row">
-              <p>採点時は同年度の「正解と配点」を開いて確認します。</p>
-              <a class="button-link primary" href="${group.year.answer}" target="_blank" rel="noopener">正解と配点</a>
-            </div>
-          </article>
-        `;
-      }).join("") || `<div class="panel"><p class="empty">条件に合う過去問がありません。絞り込みを変えてください。</p></div>`;
-    }
-    function renderPaper(paper) {
-      const rec = recordFor(paper.id);
-      const badgeClass = rec.review ? "review" : rec.done ? "done" : "";
-      const badgeText = rec.review ? "復習" : rec.done ? "済" : "未";
-      return `
-        <article class="paper" data-id="${paper.id}">
-          <div class="paper-head">
-            <div class="paper-title">
-              <strong>${paper.subject}</strong>
-              <small>${paper.era} / ${paper.subjectShort}</small>
-            </div>
-            <span class="badge ${badgeClass}">${badgeText}</span>
-          </div>
-          <div class="paper-actions">
-            <a class="button-link primary" href="${paper.pdf}" target="_blank" rel="noopener">問題PDF</a>
-            <a class="button-link" href="${paper.answer}" target="_blank" rel="noopener">正解表</a>
-          </div>
-          <div class="paper-controls">
-            <div class="checks">
-              <label class="check"><input data-action="done" type="checkbox" ${rec.done ? "checked" : ""}>解いた</label>
-              <label class="check"><input data-action="review" type="checkbox" ${rec.review ? "checked" : ""}>復習</label>
-              <button class="ghost" data-action="memo-toggle" type="button">${rec.memo.trim() ? "メモ編集" : "メモ"}</button>
-            </div>
-            <label>得点
-              <input data-action="score" type="number" min="0" max="100" inputmode="numeric" value="${escapeHtml(rec.score)}" placeholder="点">
-            </label>
-          </div>
-          <div class="memo ${rec.memo.trim() ? "open" : ""}">
-            <label>メモ
-              <textarea data-action="memo" placeholder="間違えた論点、再演習日、気づきなど">${escapeHtml(rec.memo)}</textarea>
-            </label>
-          </div>
-        </article>
-      `;
-    }
-    function renderDashboard() {
-      $("subjectBars").innerHTML = SUBJECTS.map(subject => {
-        const ids = papers.filter(p => p.subjectKey === subject.key).map(p => p.id);
-        const done = ids.filter(id => recordFor(id).done).length;
-        const percent = Math.round(done / ids.length * 100);
-        return `<div class="subject-line"><strong>${subject.name}</strong><div class="bar"><i style="width:${percent}%"></i></div><span>${done}/${ids.length}</span></div>`;
-      }).join("");
-
-      const todos = papers
-        .filter(p => !recordFor(p.id).done || recordFor(p.id).review)
-        .slice(0, 8);
-      $("todoList").innerHTML = todos.map(p => {
-        const rec = recordFor(p.id);
-        return `<div class="todo"><div><strong>${p.year} ${p.subject}</strong><br><span>${rec.review ? "復習対象" : "未演習"}</span></div><a class="button-link" href="${p.pdf}" target="_blank" rel="noopener">開く</a></div>`;
-      }).join("") || `<p class="empty">すべて演習済みです。復習チェックを付けた問題がここに並びます。</p>`;
-    }
-    function render() {
-      renderStats();
-      renderPapers();
-      renderDashboard();
-    }
-    function setupControls() {
-      $("yearFilter").innerHTML = `<option value="all">すべて</option>` + YEARS.map(y => `<option>${y.label}</option>`).join("");
-      $("subjectFilter").innerHTML = `<option value="all">すべて</option>` + SUBJECTS.map(s => `<option>${s.name}</option>`).join("");
-      ["searchInput", "yearFilter", "subjectFilter", "statusFilter"].forEach(id => $(id).addEventListener("input", render));
-      $("clearFilters").addEventListener("click", () => {
-        $("searchInput").value = "";
-        $("yearFilter").value = "all";
-        $("subjectFilter").value = "all";
-        $("statusFilter").value = "all";
-        render();
-      });
-      document.body.addEventListener("change", (event) => {
-        const action = event.target.dataset.action;
-        const paper = event.target.closest(".paper");
-        if (!action || !paper) return;
-        const id = paper.dataset.id;
-        if (action === "done") setRecord(id, { done: event.target.checked });
-        if (action === "review") setRecord(id, { review: event.target.checked });
-      });
-      document.body.addEventListener("input", (event) => {
-        const action = event.target.dataset.action;
-        const paper = event.target.closest(".paper");
-        if (!action || !paper) return;
-        if (action === "score") saveRecordQuietly(paper.dataset.id, { score: event.target.value });
-        if (action === "memo") saveRecordQuietly(paper.dataset.id, { memo: event.target.value });
-      });
-      document.body.addEventListener("blur", (event) => {
-        const action = event.target.dataset.action;
-        if (action === "score" || action === "memo") render();
-      }, true);
-      document.body.addEventListener("click", (event) => {
-        const memoButton = event.target.closest("[data-action='memo-toggle']");
-        if (memoButton) memoButton.closest(".paper").querySelector(".memo").classList.toggle("open");
-      });
-      document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => {
-        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-        btn.classList.add("active");
-        $(btn.dataset.view).classList.add("active");
-      }));
-      setupDataModal();
-    }
-    function setupDataModal() {
-      const modal = $("dataModal");
-      $("exportBtn").addEventListener("click", () => {
-        $("modalTitle").textContent = "学習データをエクスポート";
-        $("modalText").textContent = "下のJSONを保存しておくと、別端末へ学習記録を移せます。";
-        $("modalData").value = JSON.stringify(records, null, 2);
-        $("modalApply").style.display = "none";
-        modal.classList.add("open");
-      });
-      $("importBtn").addEventListener("click", () => {
-        $("modalTitle").textContent = "学習データをインポート";
-        $("modalText").textContent = "以前エクスポートしたJSONを貼り付けて反映します。現在の記録は上書きされます。";
-        $("modalData").value = "";
-        $("modalApply").style.display = "";
-        modal.classList.add("open");
-      });
-      $("modalClose").addEventListener("click", () => modal.classList.remove("open"));
-      $("modalApply").addEventListener("click", () => {
-        try {
-          const next = JSON.parse($("modalData").value);
-          records = next && typeof next === "object" ? next : {};
-          saveRecords();
-          modal.classList.remove("open");
-          render();
-        } catch {
-          alert("JSONを読み込めませんでした。内容を確認してください。");
-        }
-      });
-      modal.addEventListener("click", event => {
-        if (event.target === modal) modal.classList.remove("open");
-      });
-    }
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
-    }
-    setupControls();
-    render();
-  </script>
+<script>
+const SUBJECTS=[
+  {id:'economics',name:'経済学・経済政策',short:'経済'},
+  {id:'finance',name:'財務・会計',short:'財会'},
+  {id:'strategy',name:'企業経営理論',short:'経営'},
+  {id:'operations',name:'運営管理',short:'運営'},
+  {id:'law',name:'経営法務',short:'法務'},
+  {id:'it',name:'経営情報システム',short:'情報'},
+  {id:'policy',name:'中小企業経営・政策',short:'政策'}
+];
+const TOPICS={
+  economics:[
+    ['需要の価格弾力性','価格変化に対する需要量の反応度を示し、絶対値が1を超えると弾力的と判断する。',['固定費を販売量で割って短期安全性を見る。','貨幣供給量と利子率の関係だけを示す。','市場シェアの高さで競争優位を測る。'],'値上げが売上高へ与える影響を読む代表論点です。'],
+    ['限界費用','生産量を1単位増やしたときに追加で発生する費用で、利潤最大化の判断に使う。',['総固定費を生産量で割った費用である。','過去に支出済みで意思決定に無関係な費用である。','会計上の売上総利益を示す。'],'完全競争では価格と限界費用の関係が頻出です。'],
+    ['GDPデフレーター','名目GDPを実質GDPで割って経済全体の物価水準を把握する指標である。',['家計が購入する一部品目だけの価格指数である。','輸出数量の増減だけを表す指数である。','企業の設備投資効率を表す指標である。'],'名目と実質の違いを問う問題で使います。'],
+    ['IS-LM分析','IS曲線は財市場、LM曲線は貨幣市場の均衡を表し、財政・金融政策の効果を分析する。',['IS曲線は貨幣市場だけ、LM曲線は労働市場だけを表す。','両曲線は企業の製品別原価を表す。','国際収支統計だけを説明する枠組みである。'],'政策効果の方向を図で追えるようにします。'],
+    ['比較優位','機会費用が相対的に低い財に特化することで、双方に貿易利益が生じ得る。',['絶対優位を持つ国だけが全財を生産する考え方である。','関税で国内価格を必ず下げる政策である。','独占企業が価格差別を行う根拠である。'],'絶対優位との区別が定番です。'],
+    ['外部不経済','取引当事者以外に費用が及ぶ状態で、課税や規制による内部化が検討される。',['消費者が価格を受け入れるだけの状態である。','公共財の非排除性そのものを指す。','企業内部の固定費増加だけを指す。'],'公害や混雑などの例で問われます。'],
+    ['ナッシュ均衡','各プレーヤーが相手の戦略を所与として最適反応しており、単独では戦略変更の誘因がない状態。',['全員の利得合計が必ず最大になる状態。','一方だけが常に勝つゼロサム状態。','法的拘束力のある協定が成立した状態。'],'支配戦略均衡や囚人のジレンマと合わせて確認します。'],
+    ['フィリップス曲線','短期的には失業率とインフレ率にトレードオフが見られることを示す。',['利子率と投資量の右下がり関係である。','所得と消費の比例関係である。','為替レートと輸出額の恒等式である。'],'短期と長期の違いに注意します。'],
+    ['自動安定化装置','税制や社会保障が景気変動を自動的に緩和する働きを持つ。',['中央銀行の裁量的な公開市場操作だけを指す。','企業が在庫を意図的に積み増す行動を指す。','関税率を常に固定する制度である。'],'所得税や失業給付の働きが典型です。'],
+    ['独占の価格設定','限界収入と限界費用が等しくなる生産量を選び、需要曲線上で価格を決める。',['価格は常に限界費用と一致する。','平均費用が最大になる点を選ぶ。','需要曲線とは無関係に価格を決める。'],'完全競争との違いが問われます。']
+  ],
+  finance:[
+    ['流動比率','流動資産を流動負債で割り、短期支払能力を評価する。',['売上高に対する営業利益の割合である。','固定資産の老朽度を表す。','株主資本の収益性を示す。'],'安全性分析の基本です。'],
+    ['ROE','当期純利益を自己資本で割り、株主資本の収益性を示す。',['営業利益を総資産で割る指標である。','現金預金を流動負債で割る指標である。','売上総利益率そのものである。'],'ROAや財務レバレッジとの分解も頻出です。'],
+    ['NPV','将来キャッシュフローを割引現在価値に直し、初期投資を控除して投資採否を判断する。',['会計利益を投資額で割るだけの方法。','回収期間だけで判断する方法。','簿価純資産だけで判断する方法。'],'正なら採用を検討します。'],
+    ['CVP分析','費用を固定費と変動費に分け、損益分岐点や安全余裕率を分析する。',['株価変動を分散で分析する。','棚卸資産を時価評価する。','為替予約の有効性を判定する。'],'限界利益率が鍵です。'],
+    ['直接原価計算','変動費だけを製品原価として捉え、貢献利益で意思決定を行う。',['固定費もすべて製品原価に配賦する。','税効果会計だけを扱う。','標準と実際の差異を一切見ない。'],'短期意思決定に強い考え方です。'],
+    ['WACC','負債コストと株主資本コストを資本構成で加重平均した資本コストである。',['棚卸資産の平均単価である。','平均回収期間である。','平均賃金コストである。'],'DCFの割引率として使います。'],
+    ['減価償却','固定資産の取得原価を使用期間にわたり費用配分する会計処理である。',['売掛金を現金化する処理である。','資本金を取り崩す処理である。','棚卸資産を必ず時価評価する処理である。'],'費用配分であり現金支出そのものではありません。'],
+    ['標準原価計算','標準原価と実際原価との差異を分析し、原価管理に役立てる。',['常に実際原価だけで集計し差異は見ない。','売価から利益を固定して逆算するだけ。','税務申告専用の処理である。'],'価格差異・数量差異などが出題されます。'],
+    ['安全余裕率','実際売上高が損益分岐点売上高をどの程度上回るかを示す。',['手元流動性を月商で割る。','負債を自己資本で割る。','固定資産の耐用年数を示す。'],'高いほど売上減少への耐性があります。'],
+    ['キャッシュフロー計算書','営業・投資・財務活動に区分して現金の増減要因を示す。',['発生主義の利益だけを示す。','製品別原価だけを示す。','株主総会の議事録である。'],'利益と現金の違いを確認します。']
+  ],
+  strategy:[
+    ['SWOT分析','強み・弱み・機会・脅威を整理し、内部環境と外部環境を対応させる。',['市場成長率と相対シェアだけで事業分類する。','職務満足だけを測る。','在庫品目を金額順に分類する。'],'クロスSWOTで戦略案へつなげます。'],
+    ['PPM','市場成長率と相対的市場シェアで事業ポートフォリオを整理する。',['5つの競争要因で業界を見る。','欲求段階で動機づけを見る。','品質問題を図表で見る。'],'花形・金のなる木などの意味を確認します。'],
+    ['5フォース分析','業界の競争構造を既存競争、売手、買手、新規参入、代替品の圧力で見る。',['製品寿命を5段階に分ける。','職務特性を5項目で測る。','在庫を5分類する。'],'業界収益性の分析に使います。'],
+    ['STP','市場細分化、標的市場選定、ポジショニングの流れで市場戦略を設計する。',['採用、訓練、配置の人事プロセスである。','標準化、単純化、専門化の生産原則である。','購買、生産、物流の工程である。'],'マーケティング戦略の骨格です。'],
+    ['ブランド・エクイティ','ブランドが顧客反応や価格プレミアムにもたらす資産価値である。',['広告費を売上で割る効率だけを指す。','流通業者への販売奨励金である。','固定費比率そのものである。'],'認知、連想、ロイヤルティなどが関連します。'],
+    ['コア・コンピタンス','競争優位の源泉となる中核的能力で、模倣困難性や展開可能性が重要である。',['短期借入の調達能力だけを指す。','広告枠の購入量である。','法定帳簿の管理能力だけを指す。'],'多角化や資源ベース戦略と関係します。'],
+    ['マズローの欲求階層説','人間の欲求を低次から高次へ段階的に捉える動機づけ理論である。',['衛生要因と動機づけ要因に分ける理論。','期待、道具性、誘意性で説明する理論。','リーダー行動を配慮と構造づくりで見る理論。'],'他の動機づけ理論との区別が頻出です。'],
+    ['プロダクト・ライフサイクル','導入、成長、成熟、衰退の段階で製品特性や戦略を捉える。',['従業員のキャリア段階だけを示す。','返済スケジュールを示す。','工程別リードタイムである。'],'段階ごとの価格・販促・流通が問われます。'],
+    ['組織文化','組織内で共有される価値観や行動規範で、意思決定や行動に影響する。',['株式市場での企業評価である。','製品別原価構成である。','顧客の購買頻度だけである。'],'変革時には抵抗要因にもなります。'],
+    ['ブルーオーシャン戦略','競争の激しい既存市場から離れ、新しい価値曲線で需要を創造する。',['既存市場で値下げだけを行う。','撤退事業だけを選別する。','垂直統合だけを進める。'],'価値革新が中心概念です。']
+  ],
+  operations:[
+    ['IE','作業方法や作業時間を科学的に分析し、生産性改善に役立てる管理技法である。',['財務諸表の安全性分析である。','市場を細分化する手法である。','商標登録の分類である。'],'工程改善の基本です。'],
+    ['ラインバランシング','工程間の作業負荷を均等化し、手待ちやボトルネックを減らす。',['店舗商圏を分析する。','広告媒体を組み合わせる。','資本コストを均す。'],'サイクルタイムや編成効率と関係します。'],
+    ['MRP','部品表、在庫、基準生産計画から必要資材の量と時期を計算する。',['顧客関係を管理する仕組み。','現金収支だけを予測する仕組み。','特許情報を検索する仕組み。'],'BOMとリードタイムが鍵です。'],
+    ['JIT','必要なものを必要な時に必要な量だけ供給し、在庫削減を図る。',['大量在庫で欠品を防ぐ方式。','全品検査だけで品質保証する方式。','需要予測を無視する方式。'],'かんばん方式と合わせて問われます。'],
+    ['QC七つ道具','品質問題を定量的に把握するための基本的な図表群である。',['新製品企画だけに使う発想法。','財務比率の一覧。','販売促進媒体の分類。'],'パレート図、特性要因図などを区別します。'],
+    ['ABC分析','品目を重要度でA・B・Cに分け、重点管理を行う。',['作業者技能を3段階評価する。','店舗を売場面積で分類する。','広告効果を色で分類する。'],'在庫管理で頻出です。'],
+    ['GMROI','粗利益を平均在庫投資額で割り、在庫投資の収益性を見る。',['来店客数を売場面積で割る。','広告費を粗利益で割る。','労務費を売上で割る。'],'小売の在庫効率指標です。'],
+    ['セル生産方式','少人数または一人がまとまった工程を担当し、多品種少量に対応しやすい。',['単一工程を大量連続処理する方式。','在庫を倉庫に集中する方式。','販売員を部門固定する方式。'],'ライン生産との違いを確認します。'],
+    ['商圏分析','店舗に来店し得る顧客範囲や購買力を分析し、立地や販促に活用する。',['工程能力を測る。','原価差異を分析する。','知的財産を評価する。'],'小売業の出店判断で使います。'],
+    ['ECR','小売業と取引先が連携し、消費者対応を効率化する取り組みである。',['設備投資の回収率。','雇用契約の更新管理。','為替リスクのヘッジ。'],'流通効率化の論点です。']
+  ],
+  law:[
+    ['株式会社の機関設計','会社の規模や公開性に応じて株主総会、取締役会、監査役等を組み合わせる。',['税率を自由に選択する制度。','商標区分を選ぶ制度。','労働時間を決める制度。'],'会社法の基本論点です。'],
+    ['取締役の善管注意義務','職務遂行にあたり通常期待される注意を尽くす義務である。',['株主が配当を受ける権利。','債権者が担保を実行する権利。','発明者が氏名表示される権利。'],'忠実義務との関係も確認します。'],
+    ['商標権','商品・サービスの識別標識を保護し、業務上の信用を守る権利である。',['技術的思想の創作を保護する。','物品の形状デザインを保護する。','著作物の表現を保護する。'],'特許・意匠・著作権と区別します。'],
+    ['特許権','自然法則を利用した高度な技術的思想の創作を保護する権利である。',['商品名やロゴだけを保護する。','営業秘密だけを保護する。','不動産所有を保護する。'],'発明該当性と新規性が関連します。'],
+    ['著作権','思想や感情を創作的に表現した著作物を保護する権利である。',['株式会社の議決権である。','担保物権である。','市場支配力を規制する権利である。'],'表現を保護しアイデアそのものは保護しません。'],
+    ['独占禁止法','私的独占、不当な取引制限、不公正な取引方法などを規制する。',['著作物の登録だけを定める。','会社設立手続だけを定める。','労災補償だけを定める。'],'カルテルや優越的地位の濫用が頻出です。'],
+    ['下請法','親事業者による下請事業者への不当な取扱いを規制する法律である。',['訪問販売だけを規制する。','株式譲渡制限だけを定める。','商標出願だけを定める。'],'支払遅延や買いたたき等を押さえます。'],
+    ['定款','会社の目的、商号、本店所在地など基本規則を定める根本規則である。',['会計帳簿の一種。','税務申告書の添付資料。','雇用保険の資格証明。'],'絶対的記載事項が頻出です。'],
+    ['秘密保持契約','営業秘密や機密情報の利用・開示を制限する契約である。',['株式を公開する契約。','債務を免除する登記。','広告枠を購入する契約。'],'情報管理の実務で重要です。'],
+    ['詐害行為取消権','債務者の責任財産を害する行為を債権者が取り消す制度である。',['株主が取締役を解任する制度。','消費者が常に無条件解除する制度。','発明を職務発明にする制度。'],'民法の債権保全制度です。']
+  ],
+  it:[
+    ['正規化','データの重複や更新異常を抑えるため、関係データベースの表を整理する。',['画像を圧縮する。','通信を暗号化する。','CPUを高速化する。'],'関数従属性と合わせて問われます。'],
+    ['SQL','リレーショナルデータベースを定義・操作・問い合わせするための言語である。',['画像編集ソフトの形式。','通信経路を暗号化する規格。','プログラム実行装置。'],'SELECT、JOIN、GROUP BYが頻出です。'],
+    ['クラウドコンピューティング','ネットワーク経由で計算資源やサービスを利用する形態である。',['自社内だけの専用機器利用。','紙帳票を電子化しない運用。','単一PCだけで完結する表計算。'],'IaaS、PaaS、SaaSを区別します。'],
+    ['SaaS','アプリケーション機能をサービスとして利用するクラウド形態である。',['サーバOSだけを自社購入する形態。','ネットワーク機器だけを借りる形態。','暗号鍵を配布する方式。'],'利用者はアプリをすぐ使えます。'],
+    ['ゼロトラスト','内外を問わず常に検証し、暗黙の信頼を置かないセキュリティ思想である。',['社内ネットワークを無条件に信頼する。','バックアップを不要にする。','認証を省略する。'],'ID、端末、権限の継続的検証が中心です。'],
+    ['公開鍵暗号方式','公開鍵と秘密鍵のペアを用いて暗号化や署名を実現する方式である。',['同一鍵だけで暗号化と復号を行う方式。','ハッシュ値を圧縮する方式。','通信速度を上げる方式。'],'共通鍵暗号との違いを確認します。'],
+    ['API','ソフトウェア同士が機能やデータをやり取りするための接点である。',['画面の配色規則。','物理サーバの冷却装置。','会計監査の手続。'],'外部サービス連携で重要です。'],
+    ['ERP','企業の基幹業務を統合的に管理する情報システムである。',['顧客行動ログだけを分析する。','製品意匠を登録する仕組み。','通信の暗号鍵。'],'販売、購買、会計などを統合します。'],
+    ['アジャイル開発','短い反復で価値を確認しながら開発を進める方法である。',['全工程を最初に完全固定する。','保守を行わない。','テストを最後まで行わない。'],'スクラム等と関連します。'],
+    ['BCP','災害や障害時にも重要業務を継続・早期復旧するための計画である。',['広告効果を測る計画。','在庫品目を分類する計画。','配当政策を決める計画。'],'RTOや代替手段も確認します。']
+  ],
+  policy:[
+    ['小規模企業者','業種ごとに従業員数基準で定義される小規模な事業者である。',['資本金だけで一律に定義される大企業。','上場企業だけを指す分類。','海外子会社を持つ企業だけの分類。'],'中小企業者との基準差に注意します。'],
+    ['中小企業基本法','中小企業政策の基本理念や施策方向を定める法律である。',['会社の機関設計だけを定める。','商標登録だけを定める。','金融商品取引だけを定める。'],'政策科目の土台です。'],
+    ['ものづくり補助金','革新的な製品・サービス開発や生産プロセス改善等を支援する補助金である。',['労災保険料を免除する制度。','株主配当を補助する制度。','商標登録料を常に全額免除する制度。'],'制度要件は年度で変わるため最新確認が必要です。'],
+    ['事業承継','経営権や資産を後継者へ円滑に引き継ぐ取り組みである。',['在庫を棚卸する作業。','広告媒体を選定する作業。','価格弾力性を計算する作業。'],'親族内、従業員、M&Aなどの形があります。'],
+    ['経営革新計画','新事業活動により経営向上を図る計画を行政が承認する制度である。',['法人税の申告書。','特許出願書類。','雇用契約書。'],'承認支援策との関係を押さえます。'],
+    ['信用保証協会','中小企業の金融機関借入に保証を行う公的機関である。',['株式売買を仲介する証券取引所。','商標審査を行う機関。','労働紛争を裁判する機関。'],'資金繰り支援の重要機関です。'],
+    ['小規模事業者持続化補助金','小規模事業者の販路開拓等を支援する補助金である。',['上場企業の配当を補助する制度。','輸入関税を補助する制度。','全従業員給与を恒久補助する制度。'],'販路開拓や業務効率化が中心です。'],
+    ['伴走支援','支援機関が課題設定から実行まで継続的に支える支援である。',['一回限りの申請代行だけを行う支援。','税率を自動で下げる制度。','株式公開を義務づける制度。'],'経営力再構築伴走支援が近年の重要論点です。'],
+    ['下請中小企業振興法','親事業者と下請事業者の取引適正化や振興を図る法律である。',['著作物の表現を保護する法律。','金融機関の自己資本比率を定める法律。','会社の清算だけを定める法律。'],'下請法との違いも確認します。'],
+    ['地域未来投資促進法','地域特性を生かした成長性の高い事業を支援する法律である。',['消費者契約を取り消す法律。','商標の国際分類を定める法律。','労働時間上限だけを定める法律。'],'地域経済牽引事業がキーワードです。']
+  ]
+};
+const STEMS=[
+  t=>`次のうち「${t}」の説明として最も適切なものはどれか。`,
+  t=>`中小企業診断士の実務で「${t}」を使う場面を想定した場合、最も適切な理解はどれか。`,
+  t=>`1次試験で問われやすい「${t}」について、正しい記述はどれか。`,
+  t=>`企業の診断・助言に関連して「${t}」を説明したものとして最も適切なものはどれか。`,
+  t=>`次の記述のうち「${t}」に関するものとして妥当なものはどれか。`,
+  t=>`「${t}」を他の概念と混同しないための説明として、最も適切なものはどれか。`,
+  t=>`過去問演習で「${t}」が出題された場合、選ぶべき説明はどれか。`,
+  t=>`経営課題を分析する際の「${t}」の位置づけとして、最も適切なものはどれか。`,
+  t=>`次のうち「${t}」の目的または機能を正しく述べたものはどれか。`,
+  t=>`「${t}」について、診断士試験の基本知識として正しいものはどれか。`
+];
+function shuffle(a,seed){const x=[...a];let s=seed+17;for(let i=x.length-1;i>0;i--){s=(s*9301+49297)%233280;const j=s%(i+1);[x[i],x[j]]=[x[j],x[i]]}return x}
+function buildQuestions(){return SUBJECTS.flatMap(sub=>{const seeds=TOPICS[sub.id];const out=[];for(let i=0;i<100;i++){const seed=seeds[i%seeds.length], stem=STEMS[Math.floor(i/seeds.length)%STEMS.length](seed[0]);const choices=shuffle([seed[1],...seed[2]],i+sub.id.length);out.push({id:`${sub.id}-${String(i+1).padStart(3,'0')}`,subject:sub.id,subjectName:sub.name,no:i+1,topic:seed[0],question:stem,choices,answer:seed[1],explain:`${seed[0]}: ${seed[3]}`})}return out})}
+const YEARS=[
+  ['令和7年度','R07','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2025/',k=>`${k}1JI2025.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r07_shiken/R07_1ji_shiken_kaitou.html'],
+  ['令和6年度','R06','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2024/',k=>`${k}1JI2024.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r06_shiken/R06_1ji_shiken_kaitou.html'],
+  ['令和5年度','R05','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2023/',k=>`${k}1JI2023.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r05_shiken/R05_1ji_shiken_kaitou.html'],
+  ['令和4年度','R04','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2022/',k=>`${k}1ji2022.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r04_shiken/R04_1ji_shiken_kaitou.html'],
+  ['令和3年度','R03','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2021/',k=>`${k}1ji2021.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r03_shiken/R03_1ji_shiken_kaitou.html'],
+  ['令和2年度','R02','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2020/',k=>`${k}1ji2020.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_r02_shiken/R02_1ji_shiken_kaitou.html'],
+  ['令和元年度','R01','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2019/',k=>`${k}1ji2019.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_h31_shiken/R01_1ji_shiken_kaitou.html'],
+  ['平成30年度','H30','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2018/',k=>`${k}1ji2018.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_h30_shiken/H30_1ji_shiken_kaitou.html'],
+  ['平成29年度','H29','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2017/',k=>`${k.toLowerCase()}1ji2017.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_h29_shiken/H29_1ji_shiken_kaitou.html'],
+  ['平成28年度','H28','https://www.jf-cmca.jp/attach/test/shikenmondai/1ji2016/',k=>`${k.toLowerCase()}1ji2016.pdf`,'https://www.jf-cmca.jp/contents/010_c_/010_c_h28_shiken/H28_1ji_shiken_kaitou.html']
+];
+const QUESTIONS=buildQuestions();const PAST=YEARS.flatMap(y=>SUBJECTS.map(s=>({id:`${y[1]}-${s.short}`,year:y[0],era:y[1],subject:s.name,key:s.id,pdf:y[2]+y[3](String.fromCharCode(65+SUBJECTS.findIndex(x=>x.id===s.id))),answer:y[4]})));
+const $=id=>document.getElementById(id);let store=JSON.parse(localStorage.getItem('shindanshi-practice-v2')||'{"quiz":{},"past":{}}');let activeSubject='economics',set=[],idx=0;
+function save(){localStorage.setItem('shindanshi-practice-v2',JSON.stringify(store))}function rec(id){return store.quiz[id]||(store.quiz[id]={answered:false,correct:false,miss:false,star:false})}function prec(id){return store.past[id]||(store.past[id]={done:false,review:false})}
+function init(){quizSubject.innerHTML=SUBJECTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');pastYear.innerHTML='<option value="all">すべて</option>'+YEARS.map(y=>`<option>${y[0]}</option>`).join('');pastSubject.innerHTML='<option value="all">すべて</option>'+SUBJECTS.map(s=>`<option>${s.name}</option>`).join('');document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));[quizSubject,quizMode,startNo].forEach(el=>el.oninput=startQuiz);[pastYear,pastSubject,pastStatus].forEach(el=>el.oninput=renderPast);prevBtn.onclick=()=>move(-1);nextBtn.onclick=()=>move(1);restartBtn.onclick=startQuiz;starBtn.onclick=toggleStar;themeBtn.onclick=()=>dataModal.classList.add('open');closeModal.onclick=()=>dataModal.classList.remove('open');exportBtn.onclick=()=>dataBox.value=JSON.stringify(store,null,2);importBtn.onclick=()=>{try{store=JSON.parse(dataBox.value);save();renderAll();alert('読み込みました')}catch{alert('JSONを確認してください')}};clearWeakBtn.onclick=()=>{Object.values(store.quiz).forEach(r=>{if(r.correct)r.miss=false});save();renderAll()};subjectList.onclick=e=>{const b=e.target.closest('[data-subject]');if(b){quizSubject.value=b.dataset.subject;startQuiz()}};startQuiz();renderAll();if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+function showTab(id){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));renderAll()}
+function startQuiz(){activeSubject=quizSubject.value;let qs=QUESTIONS.filter(q=>q.subject===activeSubject);if(quizMode.value==='weak')qs=qs.filter(q=>rec(q.id).miss);if(quizMode.value==='star')qs=qs.filter(q=>rec(q.id).star);if(quizMode.value==='random')qs=shuffle(qs,Date.now()%9999);set=qs;idx=quizMode.value==='all'?Math.max(0,Math.min(qs.length-1,(+startNo.value||1)-1)):0;renderQuiz()}
+function move(n){idx=Math.max(0,Math.min(set.length-1,idx+n));renderQuiz()}function toggleStar(){const q=set[idx];if(!q)return;rec(q.id).star=!rec(q.id).star;save();renderQuiz();renderSide()}
+function renderQuiz(){const q=set[idx];choices.innerHTML='';explain.className='explain';if(!q){questionText.textContent='対象問題がありません。条件を変えてください。';quizMeta.textContent='-';quizCount.textContent='0/0';quizProgress.style.width='0%';return}const r=rec(q.id);quizMeta.textContent=`${q.subjectName} / No.${q.no} / ${q.topic}`;quizCount.textContent=`${idx+1}/${set.length}`;quizProgress.style.width=`${((idx+1)/set.length)*100}%`;questionText.textContent=q.question;q.choices.forEach(c=>{const b=document.createElement('button');b.className='choice';b.textContent=c;if(r.answered){b.disabled=true;if(c===q.answer)b.classList.add('correct')}b.onclick=()=>answer(q,c,b);choices.appendChild(b)});if(r.answered){explain.className='explain show';explain.innerHTML=`<strong>${r.correct?'正解':'不正解'}: ${q.answer}</strong><br>${q.explain}`}starBtn.textContent=r.star?'Starred':'Star';prevBtn.disabled=idx===0;nextBtn.disabled=idx===set.length-1;renderSide()}
+function answer(q,c,b){const ok=c===q.answer;store.quiz[q.id]={...rec(q.id),answered:true,correct:ok,miss:!ok};save();document.querySelectorAll('.choice').forEach(x=>{x.disabled=true;if(x.textContent===q.answer)x.classList.add('correct')});if(!ok)b.classList.add('wrong');explain.className='explain show';explain.innerHTML=`<strong>${ok?'正解':'不正解'}: ${q.answer}</strong><br>${q.explain}`;renderSide();renderResults()}
+function renderSide(){const subQs=QUESTIONS.filter(q=>q.subject===activeSubject),done=subQs.filter(q=>rec(q.id).answered),correct=done.filter(q=>rec(q.id).correct),miss=subQs.filter(q=>rec(q.id).miss);rateStat.textContent=done.length?Math.round(correct.length/done.length*100)+'%':'0%';answeredStat.textContent=`${done.length}/100`;missStat.textContent=miss.length;subjectList.innerHTML=SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id),d=qs.filter(q=>rec(q.id).answered).length;return `<button class="subject-btn ${s.id===activeSubject?'active':''}" data-subject="${s.id}"><span>${s.name}</span><span class="pill">${d}/100</span></button>`}).join('')}
+function renderPast(){const fy=pastYear.value,fs=pastSubject.value,st=pastStatus.value;const groups=YEARS.map(y=>({year:y,items:PAST.filter(p=>p.year===y[0]&&(fy==='all'||p.year===fy)&&(fs==='all'||p.subject===fs)&&matchPastStatus(p,st))})).filter(g=>g.items.length);yearList.innerHTML=groups.map(g=>`<article class="card year-card"><div class="year-head"><div><h2>${g.year[0]}</h2><p class="small">${g.year[1]} / 1次試験</p></div><a class="linkbtn primary" href="${g.year[4]}" target="_blank">正解と配点</a></div><div class="papers">${g.items.map(paperHtml).join('')}</div><div class="answer-row"><span class="small">公式PDFを開いて演習し、終わったらチェックを残します。</span><a class="linkbtn" href="${g.year[4]}" target="_blank">正解表</a></div></article>`).join('')||'<p class="small">条件に合う過去問がありません。</p>';document.querySelectorAll('[data-past-action]').forEach(el=>el.onchange=()=>{const r=prec(el.dataset.id);r[el.dataset.pastAction]=el.checked;save();renderAll()})}
+function matchPastStatus(p,st){const r=prec(p.id);return st==='all'||(st==='left'&&!r.done)||(st==='done'&&r.done)||(st==='review'&&r.review)}function paperHtml(p){const r=prec(p.id);return `<div class="paper"><div><div class="paper-title">${p.subject}</div><div class="small">${p.era}</div></div><div class="paper-actions"><a class="linkbtn primary" href="${p.pdf}" target="_blank">問題PDF</a><a class="linkbtn" href="${p.answer}" target="_blank">正解表</a></div><div class="row"><label class="check"><input data-past-action="done" data-id="${p.id}" type="checkbox" ${r.done?'checked':''}>解いた</label><label class="check"><input data-past-action="review" data-id="${p.id}" type="checkbox" ${r.review?'checked':''}>復習</label></div></div>`}
+function renderResults(){quizBars.innerHTML=SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id),d=qs.filter(q=>rec(q.id).answered).length,p=Math.round(d/100*100);return `<div class="barline"><strong>${s.name}</strong><div class="progress"><i style="width:${p}%"></i></div><span>${d}/100</span></div>`}).join('');pastBars.innerHTML=SUBJECTS.map(s=>{const ps=PAST.filter(p=>p.key===s.id),d=ps.filter(p=>prec(p.id).done).length,p=Math.round(d/10*100);return `<div class="barline"><strong>${s.name}</strong><div class="progress"><i style="width:${p}%"></i></div><span>${d}/10</span></div>`}).join('')}
+function renderWeak(){const weak=QUESTIONS.filter(q=>rec(q.id).miss||rec(q.id).star);weakList.innerHTML=weak.map(q=>`<div class="weak-item"><div><strong>${q.subjectName} No.${q.no}</strong><div class="small">${q.topic}</div></div><button class="btn" onclick="quizSubject.value='${q.subject}';quizMode.value='all';startNo.value='${q.no}';showTab('quiz');startQuiz()">開く</button></div>`).join('')||'<p class="small">弱点問題はまだありません。</p>'}
+function renderAll(){renderSide();renderPast();renderResults();renderWeak()}init();
+</script>
 </body>
 </html>

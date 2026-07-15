@@ -1,7 +1,7 @@
 {
-  "name": "診断士 過去問演習",
-  "short_name": "診断士過去問",
-  "description": "中小企業診断士1次試験の過去10年分PDFを年度・科目別に整理し、演習状況、得点、復習メモを管理します。",
+  "name": "診断士 Practice",
+  "short_name": "診断士Practice",
+  "description": "中小企業診断士1次試験の通常問題700問と過去問PDF演習をまとめた学習アプリです。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
