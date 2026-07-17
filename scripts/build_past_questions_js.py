@@ -11,6 +11,12 @@ SUBJECT_MAP = {
     "sme": "policy",
 }
 
+LAYOUT_DEPENDENT = re.compile(
+    r"図|表|下図|下表|上図|次図|グラフ|画像|体系図|散布図|模式図|チャート|"
+    r"マトリックス|曲線|線分|点線|実線|矢印|空\s*欄|穴埋め|下線部|囲み|"
+    r"フローチャート|ネットワーク図|回路|画面|帳票|資料\s*\d|ケース図"
+)
+
 
 def clean_line(line):
     s = line.strip()
@@ -44,11 +50,23 @@ def join_japanese_lines(lines):
     return f"{title}\n{body}" if title else body
 
 
+def is_quiz_usable(q, body):
+    if not q.get("choices") or q.get("answer") not in q.get("choices", []):
+        return False
+    if LAYOUT_DEPENDENT.search(body):
+        return False
+    if any(LAYOUT_DEPENDENT.search(choice) for choice in q.get("choices", [])):
+        return False
+    if len(q.get("choices", [])) < 3:
+        return False
+    return True
+
+
 out = []
 for q in src:
-    if not q.get("choices") or q.get("answer") not in q.get("choices", []):
-        continue
     body = q["question"].split("〔解答群〕", 1)[0].strip()
+    if not is_quiz_usable(q, body):
+        continue
     question = join_japanese_lines(body.splitlines())
     out.append({
         "id": "past-" + q["id"],
@@ -59,7 +77,7 @@ for q in src:
         "era": q["era"],
         "topic": f"{q['year']} 第{q['no']}問",
         "category": "past",
-        "categoryName": "過去問抽出",
+        "categoryName": "過去問抽出（図表除外）",
         "question": question,
         "choices": q["choices"],
         "answer": q["answer"],
