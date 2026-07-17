@@ -4,6 +4,7 @@ const vm = require("vm");
 
 const htmlPath = path.join(process.cwd(), "index.html");
 const html = fs.readFileSync(htmlPath, "utf8");
+const pastQuestionsScript = fs.readFileSync(path.join(process.cwd(), "data", "past_questions.js"), "utf8");
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.at(-1)?.[1];
 const errors = [];
@@ -39,10 +40,10 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;`,
+      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__genreTarget=GENRE_TARGET;`,
       runtimeCtx
     );
-    validateGenerated(runtimeCtx.__generated, runtimeCtx.__subjects, runtimeCtx.__cats, errors);
+    validateGenerated(runtimeCtx.__generated, runtimeCtx.__extracted, runtimeCtx.__questions, runtimeCtx.__subjects, runtimeCtx.__cats, runtimeCtx.__genreTarget, errors);
   } catch (error) {
     errors.push(`問題生成に失敗しました: ${error.message}`);
   }
@@ -88,7 +89,7 @@ function validateDefinitions(defs, errors) {
     }
 
     const quotaSum = cats.reduce((sum, cat) => sum + cat.quota, 0);
-    if (quotaSum !== 100) errors.push(`${subject.name}: ジャンル配分が100問ではありません: ${quotaSum}`);
+    if (quotaSum !== 100) errors.push(`${subject.name}: ジャンル配分比率が100%ではありません: ${quotaSum}`);
 
     for (const cat of cats) {
       for (const topic of cat.topics) {
@@ -100,27 +101,43 @@ function validateDefinitions(defs, errors) {
   }
 }
 
-function validateGenerated(generated, subjects, categoryDefs, errors) {
+function validateGenerated(generated, extracted, questions, subjects, categoryDefs, genreTarget, errors) {
   if (!Array.isArray(generated)) {
     errors.push("GENERATED_QUESTIONS が配列ではありません。");
     return;
   }
-  if (generated.length !== 700) errors.push(`通常問題が700問ではありません: ${generated.length}`);
+  if (!Array.isArray(extracted)) errors.push("EXTRACTED_QUESTIONS が配列ではありません。");
+  if (!Array.isArray(questions)) errors.push("QUESTIONS が配列ではありません。");
+  if (!Number.isInteger(genreTarget) || genreTarget < 1) errors.push(`GENRE_TARGET が不正です: ${genreTarget}`);
+
+  const expectedTotal = subjects.reduce((sum, subject) => sum + categoryDefs[subject.id].length * genreTarget, 0);
+  if (questions.length !== expectedTotal) errors.push(`総問題数がジャンル200問仕様と一致しません: ${questions.length}/${expectedTotal}`);
 
   for (const subject of subjects) {
-    const subjectQuestions = generated.filter(q => q.subject === subject.id);
-    if (subjectQuestions.length !== 100) {
-      errors.push(`${subject.name}: 生成問題が100問ではありません: ${subjectQuestions.length}`);
+    const subjectQuestions = questions.filter(q => q.subject === subject.id);
+    const expectedSubjectTotal = categoryDefs[subject.id].length * genreTarget;
+    if (subjectQuestions.length !== expectedSubjectTotal) {
+      errors.push(`${subject.name}: 問題数がジャンル200問仕様と一致しません: ${subjectQuestions.length}/${expectedSubjectTotal}`);
     }
 
     for (const cat of categoryDefs[subject.id]) {
       const catQuestions = subjectQuestions.filter(q => q.category === cat.id);
-      if (catQuestions.length !== cat.quota) {
-        errors.push(`${subject.name}/${cat.name}: 配分どおりに生成されていません: ${catQuestions.length}/${cat.quota}`);
+      if (catQuestions.length !== genreTarget) {
+        errors.push(`${subject.name}/${cat.name}: 200問になっていません: ${catQuestions.length}/${genreTarget}`);
       }
-      for (const q of catQuestions) {
+      const generatedQuestions = generated.filter(q => q.subject === subject.id && q.category === cat.id);
+      const extractedQuestions = extracted.filter(q => q.subject === subject.id && q.category === cat.id);
+      if (generatedQuestions.length + extractedQuestions.length !== genreTarget) {
+        errors.push(`${subject.name}/${cat.name}: 生成+過去問抽出の合計が200問ではありません。`);
+      }
+      for (const q of generatedQuestions) {
         if (!cat.topics.includes(q.topic)) {
           errors.push(`${subject.name}/${cat.name}: カテゴリ外トピックが生成されました: ${q.topic}`);
+        }
+      }
+      for (const q of extractedQuestions) {
+        if (q.categoryName !== cat.name) {
+          errors.push(`${subject.name}/${cat.name}: 過去問抽出の categoryName が不一致です: ${q.id}`);
         }
       }
     }

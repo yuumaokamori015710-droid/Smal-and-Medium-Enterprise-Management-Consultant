@@ -16,10 +16,19 @@ LAYOUT_DEPENDENT = re.compile(
     r"マトリックス|曲線|線分|点線|実線|矢印|空\s*欄|穴埋め|下線部|囲み|"
     r"フローチャート|ネットワーク図|回路|画面|帳票|資料\s*\d|ケース図"
 )
+PDF_ARTIFACT = re.compile(r"\s*\S*(?:JJII|iinndddd)[0-9０-９A-Za-z./:：\s]*$", re.I)
+
+
+def clean_text(value):
+    s = str(value or "").replace("\u3000", " ")
+    s = PDF_ARTIFACT.sub("", s)
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    return s.strip()
 
 
 def clean_line(line):
-    s = line.strip()
+    s = clean_text(line)
     s = re.sub(r"\s+", " ", s)
     if not s or re.fullmatch(r"\d+", s):
         return ""
@@ -79,8 +88,8 @@ for q in src:
         "category": "past",
         "categoryName": "過去問抽出（図表除外）",
         "question": question,
-        "choices": q["choices"],
-        "answer": q["answer"],
+        "choices": [clean_text(choice) for choice in q["choices"]],
+        "answer": clean_text(q["answer"]),
         "explain": f"{q['year']} {q['subjectName']} 第{q['no']}問の公式PDFから抽出した問題です。正解は{q.get('answerMark') or '正解表'}です。",
         "sourcePdf": q["sourcePdf"],
         "answerPdf": q["answerPdf"],
