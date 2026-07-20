@@ -51,6 +51,7 @@ if (!appScript) {
       runtimeCtx.__cats,
       runtimeCtx.__subjectTarget,
       runtimeCtx.__all,
+      runtimeCtx.pickSet,
       errors
     );
   } catch (error) {
@@ -110,7 +111,7 @@ function validateDefinitions(defs, errors) {
   }
 }
 
-function validateGenerated(generated, extracted, questions, subjects, categoryDefs, subjectTarget, allPractice, errors) {
+function validateGenerated(generated, extracted, questions, subjects, categoryDefs, subjectTarget, allPractice, pickSet, errors) {
   if (!Array.isArray(generated)) {
     errors.push("GENERATED_QUESTIONS が配列ではありません。");
     return;
@@ -134,6 +135,7 @@ function validateGenerated(generated, extracted, questions, subjects, categoryDe
     if (subjectQuestions.length !== subjectTarget) {
       errors.push(`${subject.name}: クイズ問題数が200問ではありません: ${subjectQuestions.length}/${subjectTarget}`);
     }
+    validateSampleMix(subject.name, subjectQuestions, 10, Number.POSITIVE_INFINITY, pickSet, errors);
 
     for (const cat of categoryDefs[subject.id]) {
       const expectedCatTotal = Math.round(subjectTarget * cat.quota / 100);
@@ -145,11 +147,50 @@ function validateGenerated(generated, extracted, questions, subjects, categoryDe
         if (q.sourceType !== "quiz") {
           errors.push(`${subject.name}/${cat.name}: クイズ以外の sourceType が含まれています: ${q.id}`);
         }
+        if (!["normal", "reverse"].includes(q.mode)) {
+          errors.push(`${subject.name}/${cat.name}: mode が normal/reverse ではありません: ${q.id}`);
+        }
+        if (!Array.isArray(q.choices) || q.choices.length !== 4) {
+          errors.push(`${subject.name}/${cat.name}: 選択肢が4つではありません: ${q.id}`);
+        } else {
+          if (new Set(q.choices).size !== q.choices.length) {
+            errors.push(`${subject.name}/${cat.name}: 選択肢に重複があります: ${q.id}`);
+          }
+          if (!q.choices.includes(q.answer)) {
+            errors.push(`${subject.name}/${cat.name}: 正解が選択肢に含まれていません: ${q.id}`);
+          }
+        }
         if (!cat.topics.includes(q.topic)) {
           errors.push(`${subject.name}/${cat.name}: カテゴリ外トピックが生成されました: ${q.topic}`);
         }
       }
+      const normal = catQuestions.filter(q => q.mode === "normal").length;
+      const reverse = catQuestions.filter(q => q.mode === "reverse").length;
+      if (Math.abs(normal - reverse) > 1) {
+        errors.push(`${subject.name}/${cat.name}: 通常問題と逆引き問題の比率が偏っています: normal=${normal}, reverse=${reverse}`);
+      }
+      validateSampleMix(`${subject.name}/${cat.name}`, catQuestions, 10, Math.max(0, 10 - cat.topics.length), pickSet, errors);
     }
+  }
+}
+
+function validateSampleMix(label, questions, limit, allowedTopicDupes, pickSet, errors) {
+  if (typeof pickSet !== "function" || questions.length === 0) return;
+  const sampleSize = Math.min(limit, questions.length);
+  const sample = pickSet(questions, sampleSize, "random");
+  if (sample.length !== sampleSize) {
+    errors.push(`${label}: 10問サンプルの抽出数が不足しています: ${sample.length}/${sampleSize}`);
+    return;
+  }
+  if (sampleSize >= 2) {
+    const modes = new Set(sample.map(q => q.mode));
+    if (questions.some(q => q.mode === "normal") && questions.some(q => q.mode === "reverse") && modes.size < 2) {
+      errors.push(`${label}: 10問サンプルに通常問題と逆引き問題が混在していません。`);
+    }
+  }
+  const topicDupes = sample.length - new Set(sample.map(q => q.topic)).size;
+  if (topicDupes > allowedTopicDupes) {
+    errors.push(`${label}: 10問サンプル内の論点重複が多すぎます: ${topicDupes}`);
   }
 }
 
