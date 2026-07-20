@@ -135,6 +135,10 @@ function validateGenerated(generated, extracted, questions, subjects, categoryDe
     if (subjectQuestions.length !== subjectTarget) {
       errors.push(`${subject.name}: クイズ問題数が200問ではありません: ${subjectQuestions.length}/${subjectTarget}`);
     }
+    const uniquePoints = new Set(subjectQuestions.map(q => q.point)).size;
+    if (uniquePoints < Math.min(100, Math.floor(subjectQuestions.length / 2))) {
+      errors.push(`${subject.name}: 問題ごとのポイント文の種類が少なすぎます: ${uniquePoints}/${subjectQuestions.length}`);
+    }
     validateSampleMix(subject.name, subjectQuestions, 10, Number.POSITIVE_INFINITY, pickSet, errors);
 
     for (const cat of categoryDefs[subject.id]) {
@@ -149,6 +153,9 @@ function validateGenerated(generated, extracted, questions, subjects, categoryDe
         }
         if (!["normal", "reverse"].includes(q.mode)) {
           errors.push(`${subject.name}/${cat.name}: mode が normal/reverse ではありません: ${q.id}`);
+        }
+        if (typeof q.point !== "string" || q.point.length < 20) {
+          errors.push(`${subject.name}/${cat.name}: 問題ごとのポイントが不足しています: ${q.id}`);
         }
         if (!Array.isArray(q.choices) || q.choices.length !== 4) {
           errors.push(`${subject.name}/${cat.name}: 選択肢が4つではありません: ${q.id}`);
