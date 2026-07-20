@@ -9,6 +9,8 @@ const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<
 const appScript = inlineScripts.at(-1)?.[1];
 const errors = [];
 
+validateShell(html, errors);
+
 if (!appScript) {
   errors.push("index.html のアプリ本体 script が見つかりません。");
 } else {
@@ -66,6 +68,23 @@ if (errors.length) {
 }
 
 console.log("Question definition validation passed.");
+
+function validateShell(html, errors) {
+  const requiredTabs = [
+    'data-tab="home">Home',
+    'data-tab="quiz">練習',
+    'data-tab="pastQuiz">過去問',
+    'data-tab="weak">Weak'
+  ];
+  for (const tab of requiredTabs) {
+    if (!html.includes(tab)) errors.push(`上部タブが仕様と一致しません: ${tab}`);
+  }
+  if (html.includes('data-tab="results"') || html.includes('data-tab="past">PDF')) {
+    errors.push("上部タブに Results または PDF が残っています。");
+  }
+  if (!html.includes("dashboardHistoryList")) errors.push("ダッシュボードの記録タブが見つかりません。");
+  if (!html.includes("過去に間違えた問題をつぶそう")) errors.push("5問復習の文言が見つかりません。");
+}
 
 function validateDefinitions(defs, errors) {
   const { SUBJECTS, TOPICS, CATEGORY_DEFS } = defs;
