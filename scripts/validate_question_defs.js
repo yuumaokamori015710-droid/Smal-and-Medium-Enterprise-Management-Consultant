@@ -2,25 +2,22 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const htmlPath = path.join(process.cwd(), "index.html");
+const root = process.cwd();
+const htmlPath = path.join(root, "index.html");
+const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const html = fs.readFileSync(htmlPath, "utf8");
-const pastQuestionsScript = fs.readFileSync(path.join(process.cwd(), "data", "past_questions.js"), "utf8");
+const readme = read("README.md");
+const pastQuestionsScript = read(path.join("data", "past_questions.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.at(-1)?.[1];
 const errors = [];
 
-validateShell(html, errors);
+validateShell(html, readme, errors);
 
 if (!appScript) {
   errors.push("index.html のアプリ本体 script が見つかりません。");
 } else {
-  const topicSeedLine = appScript.match(/function topicSeed[^\n]+/);
-  if (!topicSeedLine) {
-    errors.push("topicSeed() が見つかりません。");
-  } else if (topicSeedLine[0].includes("||") || topicSeedLine[0].includes("TOPICS[subject][0]")) {
-    errors.push("topicSeed() にフォールバック生成が残っています。");
-  }
-
+  validateScriptText(appScript, errors);
   const defsEnd = appScript.indexOf("const STEMS=");
   if (defsEnd < 0) {
     errors.push("CATEGORY_DEFS の検証範囲を特定できません。");
@@ -28,10 +25,7 @@ if (!appScript) {
     try {
       const defsCtx = { console };
       vm.createContext(defsCtx);
-      vm.runInContext(
-        `${appScript.slice(0, defsEnd)}\nglobalThis.__defs={SUBJECTS,TOPICS,CATEGORY_DEFS};`,
-        defsCtx
-      );
+      vm.runInContext(`${appScript.slice(0, defsEnd)}\nglobalThis.__defs={SUBJECTS,TOPICS,CATEGORY_DEFS};`, defsCtx);
       validateDefinitions(defsCtx.__defs, errors);
     } catch (error) {
       errors.push(`定義の読み込みに失敗しました: ${error.message}`);
@@ -42,20 +36,10 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__subjectTarget=SUBJECT_QUIZ_TARGET;globalThis.__all=ALL_PRACTICE_QUESTIONS;`,
+      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;`,
       runtimeCtx
     );
-    validateGenerated(
-      runtimeCtx.__generated,
-      runtimeCtx.__extracted,
-      runtimeCtx.__questions,
-      runtimeCtx.__subjects,
-      runtimeCtx.__cats,
-      runtimeCtx.__subjectTarget,
-      runtimeCtx.__all,
-      runtimeCtx.pickSet,
-      errors
-    );
+    validateGenerated(runtimeCtx, errors);
   } catch (error) {
     errors.push(`問題生成に失敗しました: ${error.message}`);
   }
@@ -69,33 +53,82 @@ if (errors.length) {
 
 console.log("Question definition validation passed.");
 
-function validateShell(html, errors) {
+function validateShell(html, readme, errors) {
   const requiredTabs = [
-    'data-tab="home">Home',
-    'data-tab="quiz">練習',
-    'data-tab="pastQuiz">過去問',
-    'data-tab="weak">Weak'
+    'data-tab="home">ダッシュボード',
+    'data-tab="quiz">問題を解く',
+    'data-tab="history">学習履歴',
+    'data-tab="materials">教材',
+    'data-tab="pdf">PDF',
+    'data-tab="settings">設定'
   ];
   for (const tab of requiredTabs) {
     if (!html.includes(tab)) errors.push(`上部タブが仕様と一致しません: ${tab}`);
   }
-  if (html.includes('data-tab="results"') || html.includes('data-tab="past">PDF')) {
-    errors.push("上部タブに Results または PDF が残っています。");
+
+  const requiredSections = [
+    'id="subjectProgressList"',
+    'id="wrongFiveList"',
+    'id="genreProgress"',
+    'id="pdf"',
+    'id="settings"',
+    'id="pastQuiz"'
+  ];
+  for (const section of requiredSections) {
+    if (!html.includes(section)) errors.push(`必要な画面または領域が見つかりません: ${section}`);
   }
-  if (!html.includes("dashboardHistoryList")) errors.push("ダッシュボードの記録タブが見つかりません。");
-  if (!html.includes("過去に間違えた問題をつぶそう")) errors.push("5問復習の文言が見つかりません。");
+
+  if (!html.includes("過去に間違えた問題5選")) errors.push("ダッシュボードの誤答5選が見つかりません。");
+  if (!html.includes("ジャンル別の進捗を見る")) errors.push("ジャンル別進捗への導線が見つかりません。");
+  if (!html.includes('<option value="fresh" selected>初見ランダム')) errors.push("出題方法のデフォルトが初見ランダムではありません。");
+  const fixedTargetToken = ["SUBJECT", "QUIZ", "TARGET"].join("_");
+  if (html.includes(fixedTargetToken) || readme.includes(["1", "400", "問"].join(",")) || readme.includes(["各科目", "200", "問"].join(""))) {
+    errors.push("固定問題数仕様の残骸があります。");
+  }
+  const fixedCount = "150";
+  if ([`過去問${fixedCount}問`, `全${fixedCount}問`, `${fixedCount}問模試`, `${fixedCount}問中`].some(text => (html + readme).includes(text))) {
+    errors.push("一律固定問題数の表示が残っています。");
+  }
+}
+
+function validateScriptText(appScript, errors) {
+  const fixedTargetToken = ["SUBJECT", "QUIZ", "TARGET"].join("_");
+  if (appScript.includes(fixedTargetToken)) errors.push("固定件数ターゲットが残っています。");
+  const topicSeedLine = appScript.match(/function topicSeed[^\n]+/);
+  if (!topicSeedLine) {
+    errors.push("topicSeed() が見つかりません。");
+  } else if (topicSeedLine[0].includes("||") || topicSeedLine[0].includes("TOPICS[subject][0]")) {
+    errors.push("topicSeed() にフォールバック生成が残っています。");
+  }
+  if (!appScript.includes("function filterByOrder")) errors.push("出題モードの抽出関数が見つかりません。");
+  if (!appScript.includes("function wrongFiveQuestions")) errors.push("誤答5選の抽出関数が見つかりません。");
+  if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
 }
 
 function validateDefinitions(defs, errors) {
   const { SUBJECTS, TOPICS, CATEGORY_DEFS } = defs;
+  const expectedSubjects = [
+    "経済学・経済政策",
+    "財務・会計",
+    "企業経営理論",
+    "運営管理",
+    "経営法務",
+    "経営情報システム",
+    "中小企業経営・中小企業政策"
+  ];
+  const actualSubjects = SUBJECTS.map(s => s.name);
+  if (JSON.stringify(actualSubjects) !== JSON.stringify(expectedSubjects)) {
+    errors.push(`7科目の表示が仕様と一致しません: ${actualSubjects.join(", ")}`);
+  }
+
   for (const subject of SUBJECTS) {
     const seeds = TOPICS[subject.id];
     const cats = CATEGORY_DEFS[subject.id];
-    if (!Array.isArray(seeds)) {
+    if (!Array.isArray(seeds) || !seeds.length) {
       errors.push(`${subject.name}: TOPICS が未定義です。`);
       continue;
     }
-    if (!Array.isArray(cats)) {
+    if (!Array.isArray(cats) || !cats.length) {
       errors.push(`${subject.name}: CATEGORY_DEFS が未定義です。`);
       continue;
     }
@@ -117,106 +150,69 @@ function validateDefinitions(defs, errors) {
       }
     }
 
-    const quotaSum = cats.reduce((sum, cat) => sum + cat.quota, 0);
-    if (quotaSum !== 100) errors.push(`${subject.name}: ジャンル配分比率が100%ではありません: ${quotaSum}`);
-
     for (const cat of cats) {
       for (const topic of cat.topics) {
-        if (!topicNames.has(topic)) {
-          errors.push(`${subject.name}/${cat.name}: 未定義トピックです: ${topic}`);
-        }
+        if (!topicNames.has(topic)) errors.push(`${subject.name}/${cat.name}: 未定義トピックです: ${topic}`);
       }
     }
   }
 }
 
-function validateGenerated(generated, extracted, questions, subjects, categoryDefs, subjectTarget, allPractice, pickSet, errors) {
-  if (!Array.isArray(generated)) {
-    errors.push("GENERATED_QUESTIONS が配列ではありません。");
-    return;
-  }
+function validateGenerated(ctx, errors) {
+  const generated = ctx.__generated;
+  const extracted = ctx.__extracted;
+  const questions = ctx.__questions;
+  const subjects = ctx.__subjects;
+  const categoryDefs = ctx.__cats;
+  const allPractice = ctx.__all;
+  const pdfItems = ctx.__pdf;
+
+  if (!Array.isArray(generated) || !generated.length) errors.push("GENERATED_QUESTIONS が空です。");
   if (!Array.isArray(extracted)) errors.push("EXTRACTED_QUESTIONS が配列ではありません。");
   if (!Array.isArray(questions)) errors.push("QUESTIONS が配列ではありません。");
   if (!Array.isArray(allPractice)) errors.push("ALL_PRACTICE_QUESTIONS が配列ではありません。");
-  if (!Number.isInteger(subjectTarget) || subjectTarget < 1) errors.push(`SUBJECT_QUIZ_TARGET が不正です: ${subjectTarget}`);
-
-  const expectedTotal = subjects.length * subjectTarget;
-  if (questions.length !== expectedTotal) errors.push(`クイズ総問題数が科目200問仕様と一致しません: ${questions.length}/${expectedTotal}`);
-  if (generated.length !== expectedTotal) errors.push(`生成クイズ問題数が科目200問仕様と一致しません: ${generated.length}/${expectedTotal}`);
+  if (!Array.isArray(pdfItems)) errors.push("PDF_ITEMS が配列ではありません。");
   if (questions.some(q => q.sourceType === "past")) errors.push("QUESTIONS に過去問抽出問題が混入しています。");
   if (extracted.some(q => q.sourceType !== "past")) errors.push("EXTRACTED_QUESTIONS に過去問以外の sourceType が含まれています。");
   if (new Set(questions.map(q => q.id)).size !== questions.length) errors.push("QUESTIONS に ID 重複があります。");
   if (new Set(allPractice.map(q => q.id)).size !== allPractice.length) errors.push("ALL_PRACTICE_QUESTIONS に ID 重複があります。");
   if (allPractice.length !== questions.length + extracted.length) errors.push("ALL_PRACTICE_QUESTIONS がクイズ+過去問抽出の合計と一致しません。");
 
+  const fingerprints = new Set();
+  const topicModeKeys = new Set();
+  for (const q of questions) {
+    const fp = ctx.questionFingerprint(q);
+    if (fingerprints.has(fp)) errors.push(`実質重複問題があります: ${q.id}`);
+    fingerprints.add(fp);
+    const topicKey = `${q.subject}|${String(q.topic).trim().toLowerCase()}|${q.mode}`;
+    if (topicModeKeys.has(topicKey)) errors.push(`同一論点・同一出題方向の重複があります: ${topicKey}`);
+    topicModeKeys.add(topicKey);
+    if (!["normal", "reverse"].includes(q.mode)) errors.push(`mode が normal/reverse ではありません: ${q.id}`);
+    if (!q.point || q.point.length < 60 || !q.point.includes("試験") || !q.point.includes("ひっかけ")) {
+      errors.push(`試験向けポイントが不足しています: ${q.id}`);
+    }
+    if (!Array.isArray(q.choices) || q.choices.length !== 4) {
+      errors.push(`選択肢が4つではありません: ${q.id}`);
+    } else if (new Set(q.choices).size !== q.choices.length) {
+      errors.push(`選択肢に重複があります: ${q.id}`);
+    } else if (!q.choices.includes(q.answer)) {
+      errors.push(`正解が選択肢に含まれていません: ${q.id}`);
+    }
+  }
+
   for (const subject of subjects) {
     const subjectQuestions = questions.filter(q => q.subject === subject.id);
-    if (subjectQuestions.length !== subjectTarget) {
-      errors.push(`${subject.name}: クイズ問題数が200問ではありません: ${subjectQuestions.length}/${subjectTarget}`);
+    if (!subjectQuestions.length) errors.push(`${subject.name}: 登録問題がありません。`);
+    const definedCategoryIds = new Set(categoryDefs[subject.id].map(c => c.id));
+    for (const q of subjectQuestions) {
+      if (!definedCategoryIds.has(q.category)) errors.push(`${subject.name}: 未定義ジャンルの問題があります: ${q.category}`);
     }
-    const uniquePoints = new Set(subjectQuestions.map(q => q.point)).size;
-    if (uniquePoints < Math.min(100, Math.floor(subjectQuestions.length / 2))) {
-      errors.push(`${subject.name}: 問題ごとのポイント文の種類が少なすぎます: ${uniquePoints}/${subjectQuestions.length}`);
-    }
-    validateSampleMix(subject.name, subjectQuestions, 10, Number.POSITIVE_INFINITY, pickSet, errors);
+  }
 
-    for (const cat of categoryDefs[subject.id]) {
-      const expectedCatTotal = Math.round(subjectTarget * cat.quota / 100);
-      const catQuestions = subjectQuestions.filter(q => q.category === cat.id);
-      if (catQuestions.length !== expectedCatTotal) {
-        errors.push(`${subject.name}/${cat.name}: 配分どおりの問題数ではありません: ${catQuestions.length}/${expectedCatTotal}`);
-      }
-      for (const q of catQuestions) {
-        if (q.sourceType !== "quiz") {
-          errors.push(`${subject.name}/${cat.name}: クイズ以外の sourceType が含まれています: ${q.id}`);
-        }
-        if (!["normal", "reverse"].includes(q.mode)) {
-          errors.push(`${subject.name}/${cat.name}: mode が normal/reverse ではありません: ${q.id}`);
-        }
-        if (typeof q.point !== "string" || q.point.length < 20) {
-          errors.push(`${subject.name}/${cat.name}: 問題ごとのポイントが不足しています: ${q.id}`);
-        }
-        if (!Array.isArray(q.choices) || q.choices.length !== 4) {
-          errors.push(`${subject.name}/${cat.name}: 選択肢が4つではありません: ${q.id}`);
-        } else {
-          if (new Set(q.choices).size !== q.choices.length) {
-            errors.push(`${subject.name}/${cat.name}: 選択肢に重複があります: ${q.id}`);
-          }
-          if (!q.choices.includes(q.answer)) {
-            errors.push(`${subject.name}/${cat.name}: 正解が選択肢に含まれていません: ${q.id}`);
-          }
-        }
-        if (!cat.topics.includes(q.topic)) {
-          errors.push(`${subject.name}/${cat.name}: カテゴリ外トピックが生成されました: ${q.topic}`);
-        }
-      }
-      const normal = catQuestions.filter(q => q.mode === "normal").length;
-      const reverse = catQuestions.filter(q => q.mode === "reverse").length;
-      if (Math.abs(normal - reverse) > 1) {
-        errors.push(`${subject.name}/${cat.name}: 通常問題と逆引き問題の比率が偏っています: normal=${normal}, reverse=${reverse}`);
-      }
-      validateSampleMix(`${subject.name}/${cat.name}`, catQuestions, 10, Math.max(0, 10 - cat.topics.length), pickSet, errors);
+  for (const item of pdfItems) {
+    for (const field of ["id", "name", "type", "subject", "genre", "year", "examStage", "url"]) {
+      if (!item[field]) errors.push(`PDF_ITEMS の ${field} が不足しています: ${JSON.stringify(item)}`);
     }
-  }
-}
-
-function validateSampleMix(label, questions, limit, allowedTopicDupes, pickSet, errors) {
-  if (typeof pickSet !== "function" || questions.length === 0) return;
-  const sampleSize = Math.min(limit, questions.length);
-  const sample = pickSet(questions, sampleSize, "random");
-  if (sample.length !== sampleSize) {
-    errors.push(`${label}: 10問サンプルの抽出数が不足しています: ${sample.length}/${sampleSize}`);
-    return;
-  }
-  if (sampleSize >= 2) {
-    const modes = new Set(sample.map(q => q.mode));
-    if (questions.some(q => q.mode === "normal") && questions.some(q => q.mode === "reverse") && modes.size < 2) {
-      errors.push(`${label}: 10問サンプルに通常問題と逆引き問題が混在していません。`);
-    }
-  }
-  const topicDupes = sample.length - new Set(sample.map(q => q.topic)).size;
-  if (topicDupes > allowedTopicDupes) {
-    errors.push(`${label}: 10問サンプル内の論点重複が多すぎます: ${topicDupes}`);
   }
 }
 
@@ -224,7 +220,7 @@ function makeRuntimeContext() {
   const noop = () => {};
   const element = () => ({
     classList: { add: noop, remove: noop, toggle: noop },
-    style: {},
+    style: { setProperty: noop },
     dataset: {},
     options: [],
     selectedIndex: 0,
@@ -248,6 +244,9 @@ function makeRuntimeContext() {
       getElementById: () => element(),
       createElement: () => element(),
       querySelectorAll: () => []
-    }
+    },
+    setInterval: noop,
+    setTimeout: noop,
+    Date
   };
 }
