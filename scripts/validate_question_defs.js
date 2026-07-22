@@ -61,7 +61,6 @@ function validateShell(html, readme, errors) {
     ["quiz", "問題"],
     ["pastQuiz", "模試"],
     ["pdf", "PDF"],
-    ["history", "履歴"],
     ["settings", "設定"]
   ];
   const nav = html.match(/<nav class="bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
@@ -71,7 +70,7 @@ function validateShell(html, readme, errors) {
     }
   }
   const navTabIds = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(match => match[1]);
-  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "quiz", "pastQuiz", "pdf", "history", "settings"])) {
+  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "quiz", "pastQuiz", "pdf", "settings"])) {
     errors.push(`下部ナビの構成が6項目ではありません: ${navTabIds.join(", ")}`);
   }
   if (/<button[^>]+id="themeBtn"/.test(html)) errors.push("独立したテーマ切替ボタンが残っています。");
