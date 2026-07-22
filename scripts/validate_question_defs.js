@@ -58,6 +58,7 @@ console.log("Question definition validation passed.");
 function validateShell(html, readme, errors) {
   const requiredTabs = [
     'data-tab="home">ダッシュボード',
+    'data-tab="pastQuiz">実践問題',
     'data-tab="pdf">PDF',
     'data-tab="history">学習履歴',
     'data-tab="settings"'
@@ -67,8 +68,8 @@ function validateShell(html, readme, errors) {
   }
   const nav = html.match(/<nav class="tabs"[\s\S]*?<\/nav>/)?.[0] || "";
   const navTabIds = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(match => match[1]);
-  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "pdf", "history", "settings"])) {
-    errors.push(`上部タブの構成が4項目ではありません: ${navTabIds.join(", ")}`);
+  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "pastQuiz", "pdf", "history", "settings"])) {
+    errors.push(`上部タブの構成が5項目ではありません: ${navTabIds.join(", ")}`);
   }
   if (/<button[^>]+id="themeBtn"/.test(html)) errors.push("独立したテーマ切替ボタンが残っています。");
 
@@ -193,7 +194,8 @@ function validateGenerated(ctx, errors) {
   } else {
     const subjectCards = dashboardCards.match(/class="subject-progress-card"/g) || [];
     if (subjectCards.length !== 7) errors.push(`科目進捗カードが7枚ではありません: ${subjectCards.length}`);
-    if (dashboardCards.includes("難問") || dashboardCards.includes("登録問題数") || dashboardCards.includes("解答済み")) errors.push("科目進捗カードに不要な情報が残っています。");
+    if (dashboardCards.includes("難問") || dashboardCards.includes("登録問題数")) errors.push("科目進捗カードに不要な情報が残っています。");
+    if (!dashboardCards.includes("回答済み 0 / ")) errors.push("科目進捗カードに回答済み数がありません。");
   }
   if (typeof overallProgress !== "string") {
     errors.push("全体進捗カードを生成できません。");
