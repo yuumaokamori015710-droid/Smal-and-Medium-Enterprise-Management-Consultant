@@ -79,7 +79,7 @@ function validateShell(html, readme, errors) {
 
   const requiredSections = [
     'id="subjectProgressList"',
-    'id="wrongFiveList"',
+    'id="dailyStartBtn"',
     'id="genreProgress"',
     'id="pdf"',
     'id="settings"',
@@ -89,12 +89,13 @@ function validateShell(html, readme, errors) {
     if (!html.includes(section)) errors.push(`必要な画面または領域が見つかりません: ${section}`);
   }
 
-  if (!html.includes("苦手な問題5選")) errors.push("ダッシュボードの苦手な問題5選が見つかりません。");
+  if (!html.includes("苦手な問題")) errors.push("ダッシュボードの苦手な問題スタートが見つかりません。");
   const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
-  if ((home.match(/苦手な問題5選/g) || []).length !== 1) errors.push("ダッシュボードの苦手な問題5選が重複しています。");
+  if (!home.includes('id="dailyStartBtn"')) errors.push("苦手な問題のスタートボタンが見つかりません。");
+  if (home.includes('id="wrongFiveList"')) errors.push("苦手な問題の一覧が残っています。");
   if (home.includes("過去に間違えた問題5選")) errors.push("旧名称の誤答5選が残っています。");
-  if (home.indexOf("苦手な問題5選") > home.indexOf('id="overallProgressPanel"')) errors.push("苦手な問題5選が全体進捗より下にあります。");
-  if (/(dailyStartBtn|practiceHomeBtn|mockHomeBtn|pastHomeBtn|dashboardPdfBtn|dashboardPdfBox|recentHistoryList)/.test(home)) {
+  if (home.indexOf('id="dailyStartBtn"') > home.indexOf('id="overallProgressPanel"')) errors.push("苦手な問題のスタートが全体進捗より下にあります。");
+  if (/(practiceHomeBtn|mockHomeBtn|pastHomeBtn|dashboardPdfBtn|dashboardPdfBox|recentHistoryList)/.test(home)) {
     errors.push("ダッシュボードに不要なショートカットまたはカードが残っています。");
   }
   if (!html.includes('onclick="openSubjectGenre')) errors.push("科目カードからジャンル選択への導線が見つかりません。");
@@ -123,7 +124,8 @@ function validateScriptText(appScript, errors) {
     errors.push("topicSeed() にフォールバック生成が残っています。");
   }
   if (!appScript.includes("function filterByOrder")) errors.push("出題モードの抽出関数が見つかりません。");
-  if (!appScript.includes("function wrongFiveQuestions")) errors.push("誤答5選の抽出関数が見つかりません。");
+  if (!appScript.includes("function reviewFiveSet")) errors.push("苦手な問題の5問抽出関数が見つかりません。");
+  if (!appScript.includes("ALL_PRACTICE_QUESTIONS.filter")) errors.push("過去問を含む苦手問題の抽出が見つかりません。");
   if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
 }
 
