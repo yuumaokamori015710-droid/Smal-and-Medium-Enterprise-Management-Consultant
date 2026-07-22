@@ -44,8 +44,8 @@ body.immersive .bottom-nav{opacity:1;pointer-events:auto;transform:translateX(-5
   <section id="home" class="section active">
     <div class="dashboard">
       <div class="dashboard-block">
-        <h2>苦手な問題5選</h2>
-        <div id="wrongFiveList" class="mini-list"></div>
+        <h2>苦手な問題</h2>
+        <button id="dailyStartBtn" class="btn primary big-start" type="button">スタート</button>
       </div>
       <div id="overallProgressPanel" aria-label="全体進捗"></div>
       <div class="subject-selection-panel">
@@ -558,15 +558,13 @@ function openSubjectGenre(subjectId){quizSubject.value=subjectId;activeSubject=s
 function overallProgressHtml(){const total=QUESTIONS.length,seen=QUESTIONS.filter(q=>rec(q.id).seen).length,p=progressRate(QUESTIONS);return `<article class="overall-progress-card" aria-label="全体進捗 ${p}%"><span>全体進捗</span><div class="ring compact-ring" style="--ring:${p*3.6}deg"><div class="ring-inner"><strong>${p}%</strong></div></div><small>回答済み ${seen} / ${total}問</small></article>`}
 function progressCardHtml(name,qs,attributes='',className=''){const seen=qs.filter(q=>rec(q.id).seen).length,p=progressRate(qs);return `<button class="subject-progress-card ${className}" type="button" ${attributes}><span class="subject-progress-main"><h3>${escapeHtml(name)}</h3><span>回答済み ${seen} / ${qs.length}問</span><span class="subject-progress-bar" aria-hidden="true"><i style="width:${p}%"></i></span></span><strong>${p}%</strong></button>`}
 function subjectProgressHtml(){return SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id);return progressCardHtml(s.name,qs,`onclick="openSubjectGenre('${s.id}')" aria-label="${escapeHtml(s.name)}のジャンルを選択"`)}).join('')}
-function wrongFiveQuestions(){const now=Date.now();return ALL_PRACTICE_QUESTIONS.filter(q=>(rec(q.id).miss||0)>0).sort((a,b)=>{const ar=rec(a.id),br=rec(b.id),au=ar.lastOk===false||((ar.dueAt||0)<=now),bu=br.lastOk===false||((br.dueAt||0)<=now);return Number(bu)-Number(au)||(br.lastWrongAt||0)-(ar.lastWrongAt||0)||(br.miss||0)-(ar.miss||0)}).slice(0,5)}
-function renderWrongFive(){if(!wrongFiveList)return;const items=wrongFiveQuestions();wrongFiveList.innerHTML=items.map(q=>{const r=rec(q.id);return `<div class="mini-item"><div class="between"><div><strong>${escapeHtml(q.subjectName)}</strong><div class="small">${escapeHtml(q.categoryName)} / ${escapeHtml(shortText(q.question,44))}</div><div class="small">最終誤答日 ${formatDate(r.lastWrongAt)} / 誤答回数 ${r.miss||0}</div></div><button class="btn primary" onclick="openPracticeQuestion('${q.id}')">再挑戦</button></div></div>`}).join('')||'<p class="small">苦手な問題はまだありません。</p>'}
 function renderReviewTargets(){if(!reviewTargetsList)return;const items=weakCandidates().sort((a,b)=>reviewPriority(a)-reviewPriority(b)).slice(0,5);reviewTargetsList.innerHTML=items.map(q=>`<div class="mini-item"><strong>${escapeHtml(q.topic)}</strong><div class="small">${escapeHtml(q.subjectName)} / ${escapeHtml(q.categoryName)} / 期限 ${formatDate(rec(q.id).dueAt)}</div></div>`).join('')||'<p class="small">現時点の復習対象はありません。</p>'}
 function renderDashboardPdf(){if(!dashboardPdfBox)return;const items=[...PDF_ITEMS].sort((a,b)=>Number(!pdfRec(a.id).done)-Number(!pdfRec(b.id).done)||(pdfRec(b.id).lastViewedAt||0)-(pdfRec(a.id).lastViewedAt||0)).slice(0,3);dashboardPdfBox.innerHTML=items.map(p=>{const r=pdfRec(p.id);return `<div class="mini-item"><strong>${escapeHtml(p.name)}</strong><div class="small">${escapeHtml(p.subject)} / ${escapeHtml(p.year)} / ${r.done?'学習済み':'未学習'} / 最終閲覧 ${formatDate(r.lastViewedAt)}</div></div>`}).join('')||'<p class="small">PDFは登録されていません。</p>'}
-function renderDashboard(){if(overallProgressPanel)overallProgressPanel.innerHTML=overallProgressHtml();if(subjectProgressList)subjectProgressList.innerHTML=subjectProgressHtml();renderWrongFive()}
+function renderDashboard(){if(overallProgressPanel)overallProgressPanel.innerHTML=overallProgressHtml();if(subjectProgressList)subjectProgressList.innerHTML=subjectProgressHtml()}
 function showPracticeHome(){quizStep='subject';renderQuizStep();showTab('quiz')}
 function openReviewMode(){quizOrder.value='review';quizStep='subject';renderQuizStep();showTab('quiz')}
 function beginDashboardQuiz(limit){clearSavedSession();solveBackTab='home';const qs=QUESTIONS.filter(q=>!rec(q.id).seen);set=pickSet(qs,Math.min(limit,qs.length),'fresh');idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
-function beginWeakFiveQuiz(){clearSavedSession();solveBackTab='home';set=reviewFiveSet();idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
+function beginWeakFiveQuiz(){const weak=reviewFiveSet();if(!weak.length){alert('苦手な問題はまだありません。');return}clearSavedSession();solveBackTab='home';set=weak;idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
 function beginDailyQuiz(){beginWeakFiveQuiz()}
 function beginMockQuiz(){showTab('pastQuiz')}
 function renderSubjectChoices(){subjectChoiceList.innerHTML=SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id);return progressCardHtml(s.name,qs,`data-subject-choice="${s.id}" aria-label="${escapeHtml(s.name)}を選択"`,s.id===quizSubject.value?'active subject-choice':'subject-choice')}).join('')}
