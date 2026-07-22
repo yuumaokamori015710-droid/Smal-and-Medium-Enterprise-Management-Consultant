@@ -39,6 +39,7 @@ if (!appScript) {
       `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;`,
       runtimeCtx
     );
+    runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
     validateGenerated(runtimeCtx, errors);
   } catch (error) {
     errors.push(`問題生成に失敗しました: ${error.message}`);
@@ -56,15 +57,19 @@ console.log("Question definition validation passed.");
 function validateShell(html, readme, errors) {
   const requiredTabs = [
     'data-tab="home">ダッシュボード',
-    'data-tab="quiz">問題を解く',
-    'data-tab="history">学習履歴',
-    'data-tab="materials">教材',
     'data-tab="pdf">PDF',
-    'data-tab="settings">設定'
+    'data-tab="history">学習履歴',
+    'data-tab="settings"'
   ];
   for (const tab of requiredTabs) {
     if (!html.includes(tab)) errors.push(`上部タブが仕様と一致しません: ${tab}`);
   }
+  const nav = html.match(/<nav class="tabs"[\s\S]*?<\/nav>/)?.[0] || "";
+  const navTabIds = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(match => match[1]);
+  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "pdf", "history", "settings"])) {
+    errors.push(`上部タブの構成が4項目ではありません: ${navTabIds.join(", ")}`);
+  }
+  if (/<button[^>]+id="themeBtn"/.test(html)) errors.push("独立したテーマ切替ボタンが残っています。");
 
   const requiredSections = [
     'id="subjectProgressList"',
@@ -79,6 +84,11 @@ function validateShell(html, readme, errors) {
   }
 
   if (!html.includes("過去に間違えた問題5選")) errors.push("ダッシュボードの誤答5選が見つかりません。");
+  const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
+  if ((home.match(/過去に間違えた問題5選/g) || []).length !== 1) errors.push("ダッシュボードの誤答5選が重複しています。");
+  if (/(dailyStartBtn|practiceHomeBtn|mockHomeBtn|pastHomeBtn|dashboardPdfBtn|dashboardPdfBox|recentHistoryList)/.test(home)) {
+    errors.push("ダッシュボードに不要なショートカットまたはカードが残っています。");
+  }
   if (!html.includes('onclick="openSubjectGenre')) errors.push("科目カードからジャンル選択への導線が見つかりません。");
   if (html.includes(">復習対象の問題<")) errors.push("削除対象の復習対象カードが残っています。");
   if (!html.includes('<option value="fresh" selected>初見ランダム')) errors.push("出題方法のデフォルトが初見ランダムではありません。");
@@ -167,12 +177,22 @@ function validateGenerated(ctx, errors) {
   const categoryDefs = ctx.__cats;
   const allPractice = ctx.__all;
   const pdfItems = ctx.__pdf;
+  const dashboardCards = ctx.__dashboardCards;
 
   if (!Array.isArray(generated) || !generated.length) errors.push("GENERATED_QUESTIONS が空です。");
   if (!Array.isArray(extracted)) errors.push("EXTRACTED_QUESTIONS が配列ではありません。");
   if (!Array.isArray(questions)) errors.push("QUESTIONS が配列ではありません。");
   if (!Array.isArray(allPractice)) errors.push("ALL_PRACTICE_QUESTIONS が配列ではありません。");
   if (!Array.isArray(pdfItems)) errors.push("PDF_ITEMS が配列ではありません。");
+  if (typeof dashboardCards !== "string") {
+    errors.push("ダッシュボード進捗カードを生成できません。");
+  } else {
+    const subjectCards = dashboardCards.match(/class="subject-progress-card"/g) || [];
+    if (subjectCards.length !== 7) errors.push(`科目進捗カードが7枚ではありません: ${subjectCards.length}`);
+    if (!dashboardCards.includes('class="overall-progress-card"')) errors.push("全体進捗カードがありません。");
+    if (!dashboardCards.includes("難問 0 / 0問")) errors.push("難問のクリア数/総数表示がありません。");
+    if (dashboardCards.includes("登録問題数") || dashboardCards.includes("解答済み")) errors.push("進捗カードに問題数の内訳が残っています。");
+  }
   if (questions.some(q => q.sourceType === "past")) errors.push("QUESTIONS に過去問抽出問題が混入しています。");
   if (extracted.some(q => q.sourceType !== "past")) errors.push("EXTRACTED_QUESTIONS に過去問以外の sourceType が含まれています。");
   if (new Set(questions.map(q => q.id)).size !== questions.length) errors.push("QUESTIONS に ID 重複があります。");
