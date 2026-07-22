@@ -24,6 +24,30 @@
     /* Bottom navigation keeps the primary study routes within one thumb's reach. */
     .app{padding-bottom:6.4rem}.bottom-nav{position:fixed;z-index:30;left:50%;bottom:max(.5rem,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(48rem,calc(100% - 1rem));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.12rem;padding:.3rem;background:color-mix(in oklab,var(--card) 94%,transparent);border:1px solid var(--border);border-radius:.8rem;box-shadow:0 12px 36px rgba(0,0,0,.18);backdrop-filter:blur(16px)}.bottom-tab{min-height:3.8rem;display:grid;place-items:center;align-content:center;gap:.22rem;border:0;border-radius:.58rem;background:transparent;color:var(--muted);padding:.3rem .12rem;font-weight:800}.bottom-tab svg{width:1.4rem;height:1.4rem;stroke-width:2.15}.bottom-tab span{font-size:.66rem;line-height:1.15;white-space:nowrap}.bottom-tab.active{background:var(--accent-soft);color:var(--accent)}.bottom-tab:focus-visible{outline:3px solid color-mix(in oklab,var(--accent) 45%,transparent);outline-offset:2px}.immersive .bottom-nav{opacity:0;pointer-events:none;transform:translate(-50%,calc(100% + 1rem));transition:opacity .18s,transform .18s}@media(max-width:42rem){.app{padding-bottom:6rem}.bottom-nav{bottom:0;width:100%;border-right:0;border-bottom:0;border-left:0;border-radius:.8rem .8rem 0 0;padding:.3rem .18rem max(.36rem,env(safe-area-inset-bottom));gap:0}.bottom-tab{min-height:3.95rem}.bottom-tab svg{width:1.32rem;height:1.32rem}.bottom-tab span{font-size:.61rem}}
 body.immersive .bottom-nav{opacity:1;pointer-events:auto;transform:translateX(-50%)}
+
+/* Desktop keeps the same study flow, but gives selection and question work room to breathe. */
+@media(min-width:59rem){
+  .app{width:calc(100% - 8.5rem);max-width:92rem;margin:0 1.75rem 0 6.75rem;padding:2rem 2.5rem 3rem}
+  .header{padding-bottom:1.5rem}.title{font-size:2.25rem}.lead{max-width:48rem;font-size:.98rem}
+  .countdown{width:min(30rem,100%);justify-content:space-between;margin-top:1.25rem;padding:.8rem 1rem}
+  .bottom-nav{left:1rem;top:1.25rem;bottom:auto;transform:none;width:4.85rem;grid-template-columns:1fr;gap:.22rem;padding:.32rem;border-radius:.75rem}
+  .bottom-tab{min-height:4.55rem;padding:.45rem .2rem;gap:.32rem}.bottom-tab svg{width:1.5rem;height:1.5rem}.bottom-tab span{font-size:.72rem}
+  body.immersive .bottom-nav{opacity:1;pointer-events:auto;transform:none}
+
+  .dashboard{width:min(78rem,100%);grid-template-columns:minmax(0,1fr) 18rem;grid-template-rows:auto auto;gap:1rem;margin:1.75rem auto 0}
+  .subject-selection-panel{grid-column:1;grid-row:1 / span 2;padding:1.25rem}.subject-selection-panel h2{margin-bottom:1rem;font-size:1.3rem}
+  .dashboard-block{grid-column:2;grid-row:1;min-height:8.75rem;padding:1.15rem}.dashboard-block h2{font-size:1.1rem}.dashboard-block .big-start{width:100%}
+  #overallProgressPanel{grid-column:2;grid-row:2}.overall-progress-card{min-height:15.25rem;padding:1.15rem}.compact-ring{width:7.75rem!important}
+  .subject-progress-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.subject-progress-card{min-height:5.5rem;padding:1rem 1.1rem}.subject-progress-card h3{font-size:1.04rem}.subject-progress-main{width:100%}
+
+  #quiz .grid{max-width:78rem;grid-template-columns:minmax(0,1fr) 17.5rem;gap:1.25rem;margin:2rem auto 0}
+  #quiz .side{position:sticky;top:1.25rem;order:initial}#quiz .side .card.pad{padding:1rem}#quiz .option-control{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #quiz .subject-choice-list,#quiz .genre-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}#quiz .subject-choice{min-height:5.5rem;padding:1.1rem}#quiz .genre-card{min-height:7.25rem;padding:1.1rem}
+
+  .solve-card{max-width:65rem;margin:2rem auto 0;padding:1.75rem 2rem}.question{font-size:1.32rem;line-height:1.8;margin:1.25rem 0 1.5rem}.choice{padding:1rem 4.9rem 1rem 1.15rem;line-height:1.75}
+  #pastQuiz>.card,#past>.card,#genreProgress>.card,#pdf>.card,#materials>.card{width:min(78rem,100%);margin:2rem auto 0}#pastQuiz .subject-choice-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .past-toolbar{max-width:42rem}.pdf-table{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.settings-grid{width:min(78rem,100%);margin:2rem auto 0}
+}
 </style>
 </head>
 <body>
