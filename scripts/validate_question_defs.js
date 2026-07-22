@@ -8,8 +8,9 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const html = fs.readFileSync(htmlPath, "utf8");
 const readme = read("README.md");
 const pastQuestionsScript = read(path.join("data", "past_questions.js"));
+const pastQuestionCategoriesScript = read(path.join("data", "past_question_categories.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
-const appScript = inlineScripts.at(-1)?.[1];
+const appScript = inlineScripts.map(match => match[1]).find(script => script.includes("const SUBJECTS="));
 const errors = [];
 
 validateShell(html, readme, errors);
@@ -36,12 +37,13 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
     runtimeCtx.__overallProgress = runtimeCtx.overallProgressHtml();
     validateGenerated(runtimeCtx, errors);
+    validatePastQuestionCategories(runtimeCtx, errors);
   } catch (error) {
     errors.push(`問題生成に失敗しました: ${error.message}`);
   }
@@ -277,6 +279,32 @@ function validateGenerated(ctx, errors) {
   for (const item of pdfItems) {
     for (const field of ["id", "name", "type", "subject", "genre", "year", "examStage", "url"]) {
       if (!item[field]) errors.push(`PDF_ITEMS の ${field} が不足しています: ${JSON.stringify(item)}`);
+    }
+  }
+}
+
+function validatePastQuestionCategories(ctx, errors) {
+  const pastQuestions = ctx.window.PAST_QUIZ_QUESTIONS || [];
+  const categoryMap = ctx.__pastCategoryMap;
+  const categoryDefs = ctx.__cats;
+  const extracted = ctx.__extracted;
+
+  if (!categoryMap || typeof categoryMap !== "object") {
+    errors.push("過去問ジャンル分類表が読み込めません。");
+    return;
+  }
+  if (Object.keys(categoryMap).length !== pastQuestions.length) {
+    errors.push(`過去問ジャンル分類表の件数が一致しません: ${Object.keys(categoryMap).length}/${pastQuestions.length}`);
+  }
+
+  for (const question of pastQuestions) {
+    const categoryId = categoryMap[question.id];
+    const category = (categoryDefs[question.subject] || []).find(item => item.id === categoryId);
+    if (!category) errors.push(`過去問のジャンル分類が不正です: ${question.id} / ${categoryId || "未分類"}`);
+  }
+  for (const question of extracted) {
+    if (question.category === "past-extracted" || question.categoryName === "過去問抽出") {
+      errors.push(`過去問抽出の仮ジャンルが残っています: ${question.id}`);
     }
   }
 }

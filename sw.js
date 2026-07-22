@@ -1,8 +1,9 @@
-const CACHE_NAME = "sme-consultant-practice-v37";
+const CACHE_NAME = "sme-consultant-practice-v38";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./data/past_questions.js",
+  "./data/past_question_categories.js",
   "./manifest.webmanifest",
   "./icon.svg"
 ];
