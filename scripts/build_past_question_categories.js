@@ -1,0 +1,99 @@
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.resolve(__dirname, '..');
+const sourcePath = path.join(root, 'data', 'past_questions.js');
+const outputPath = path.join(root, 'data', 'past_question_categories.js');
+
+const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync(sourcePath, 'utf8'), sandbox, { filename: sourcePath });
+const questions = sandbox.window.PAST_QUIZ_QUESTIONS || [];
+
+const CATEGORY_RULES = {
+  economics: [
+    ['stats', /図表|グラフ|統計|指数|ラスパイレス|パーシェ|基準年|白書|産業連関表|国勢調査|景気動向指数/],
+    ['applied', /関税|WTO|自由貿易|保護貿易|貿易協定|経済時事|経済政策の動向/],
+    ['macro', /GDP|国内総生産|国民所得|国民経済計算|IS.?LM|AD.?AS|ケインズ|貨幣|金融政策|財政政策|政府支出|租税|乗数|景気循環|フィリップス|失業|雇用|物価|インフレ|デフレ|利子率|加速度原理|為替|国際収支|輸出|輸入|比較優位|経済成長|マンデル|自動安定化|ビルトイン|絶対所得|消費関数|価格や賃金の硬直性/],
+    ['micro', /需要|供給|弾力性|効用|無差別曲線|予算制約|消費者余剰|生産者余剰|費用|限界|独占|寡占|ゲーム理論|ナッシュ|外部性|公共財|市場均衡|逆選択|情報の非対称性|共有資源|価格差別|所得効果|代替効果|公正性/]
+  ],
+  finance: [
+    ['tax', /税効果|繰延税金|法人税|消費税|課税|税務|税金|配当性向|配当政策/],
+    ['analysis', /ROA|ROE|流動比率|当座比率|自己資本比率|固定比率|固定長期適合率|回転率|回転期間|利益率|安全性|収益性|生産性|経営分析/],
+    ['accounting', /簿記|仕訳|会計帳簿|計算書類|財務諸表|貸借対照表|損益計算書|包括利益|キャッシュフロー計算書|引当金|売掛金|買掛金|棚卸|減価償却|固定資産|リース|社債|株主資本|原価計算|標準原価|直接原価|CVP|損益分岐|限界利益|差異分析|連結|のれん|決算|会計基準|完成品原価|仕掛品|営業レバレッジ|法定福利|給与|給料|収益認識|製造指図|材料消費|直接労務|製造間接費|配賦|商品売買|移動平均|先入先出|自製|購入/],
+    ['finance', /現在価値|将来価値|正味現在価値|NPV|内部収益率|IRR|資本コスト|WACC|CAPM|企業価値|ポートフォリオ|株式|債券|デリバティブ|オプション|先物|投資意思決定|配当|証券投資|スワップ|投資プロジェクト|期待収益率|標準偏差|効率的市場|金利|利回り|割引債|企業買収/]
+  ],
+  strategy: [
+    ['innovation', /イノベーション|技術革新|研究開発|R.?D|新製品|製品ライフサイクル|PLC|オープンイノベーション|破壊的|キャズム|プロダクト.?イノベーション|プロセス.?イノベーション|製品アーキテクチャ|製品開発|部品開発/],
+    ['organization', /組織|リーダーシップ|モチベーション|動機づけ|マズロー|ハーズバーグ|職務|権限|集権|分権|組織文化|人事|人材|評価制度|採用|能力開発|キャリア|チーム|コンフリクト|ガバナンス|経営者報酬|制約された合理性|意思決定|社会的責任|目標設定理論|集団思考|BCP/],
+    ['marketing', /マーケティング|市場細分|セグメンテーション|ターゲティング|ポジショニング|4P|製品政策|価格政策|チャネル|流通政策|広告|プロモーション|ブランド|顧客|消費者|サービス|CRM|顧客満足|購買行動|小売/],
+    ['strategy', /ポーター|5フォース|競争戦略|競争優位|VRIO|PPM|コア.?コンピタンス|コア製品|多角化|ドメイン|アンゾフ|バリュー.?チェーン|SWOT|外部環境|資源ベース|M.?A|経験曲線|経験効果|規模の経済|範囲の経済|参入障壁|事業領域|国際化|戦略的提携|フランチャイズ|ビジネスモデル|エフェクチュエーション|海外直接投資|折衷理論|垂直統合|事業再編|買収の戦略|取引関係/]
+  ],
+  operations: [
+    ['itops', /POS|SCM|RFID|バーコード|JANコード|EDI|電子タグ|自動発注|ECR|情報システム|ICタグ/],
+    ['store', /店舗|小売|売場|商圏|マーチャンダイジング|MD|物流センター|クロスドッキング|配送|チェーンストア|棚割|ディスプレイ|GMROI|リージョナル|販売管理|定期発注|発注点|購買行動|POP|輸送手段|輸送ネットワーク|輸送/],
+    ['layout', /レイアウト|P.?Q分析|SLP|工程配置|設備配置|動線|設備総合効率|ラインバランシング|作業配置/],
+    ['production', /生産|製造|品質|IE|JIT|MRP|在庫|需要予測|QC|かんばん|標準時間|作業研究|工程|トヨタ生産方式|セル生産|抜取検査|管理図|TQM|価値工学|VE|カーボンフットプリント|産業廃棄物|循環型社会|PERT|TPM|エネルギーの使用|加工技術|5.?S|動作経済|マシニング|産業用ロボット/]
+  ],
+  law: [
+    ['ip', /特許|商標|著作|意匠|実用新案|不正競争|営業秘密|知的財産|ライセンス/],
+    ['insolvency', /破産|民事再生|会社更生|特別清算|倒産|清算|事業再生|債務超過|動産譲渡担保|再生手続/],
+    ['company', /会社法|株式会社|株主総会|取締役|監査役|執行役|株式|新株|種類株|剰余金|組織再編|合併|会社分割|株式交換|株式移転|定款/],
+    ['contract', /民法|契約|債務|保証|売買|消費者|製造物責任|PL法|独占禁止|下請|代理|時効|意思表示|損害賠償|電子契約|個人情報|不法行為|遺言|相続|景品表示|不当表示/]
+  ],
+  it: [
+    ['security', /セキュリティ|暗号|認証|パスワード|マルウェア|ウイルス|不正アクセス|脆弱性|ファイアウォール|VPN|アクセス制御|ゼロトラスト|ハッシュ|公開鍵|秘密鍵|情報漏えい|インシデント|ランサムウェア/],
+    ['data', /AI|人工知能|機械学習|深層学習|IoT|ビッグデータ|データマイニング|BI|データウェアハウス|RPA|ニューラル|ブロックチェーン|データ分析|混同行列|統計的仮説|母平均|検定|分析手法|時系列モデル/],
+    ['management', /プロジェクト|ITIL|SLA|サービスレベル|システム監査|内部統制|ITガバナンス|要件定義|調達|見積|リスク管理|PMBOK|監査証跡|変更管理|ビジネスモデルキャンバス|DX|デジタル変革|バランスト.?スコアカード|コンティンジェンシー/],
+    ['systems', /データベース|正規化|SQL|TCP.?IP|OSI|DNS|クラウド|SaaS|PaaS|IaaS|API|OS|ネットワーク|プログラム|アルゴリズム|ソフトウェア|ハードウェア|仮想化|アジャイル/]
+  ],
+  policy: [
+    ['innovation', /創業|起業|経営革新|新連携|地域未来|事業再構築|ものづくり|新事業|ベンチャー|研究開発|外部連携/],
+    ['finance', /融資|資金調達|金融|貸付|信用保証|保証協会|資本性|劣後|再生|経営改善|金融機関|リスケ|債務|コミットメントライン|クラウドファンディング/],
+    ['support', /補助金|助成|支援|税制|投資促進|設備投資|持続化|経営力向上|下請|商工会|認定|セーフティネット|中小企業支援法|支援機関|価格転嫁|取引条件|M.?Aガイドライン/],
+    ['trends', /白書|中小企業基本法|小規模|事業承継|海外展開|動向|統計|経営者|従業者|企業数|中小企業者/]
+  ]
+};
+
+const DEFAULT_CATEGORY = {
+  economics: 'micro',
+  finance: 'finance',
+  strategy: 'strategy',
+  operations: 'production',
+  law: 'contract',
+  it: 'systems',
+  policy: 'trends'
+};
+
+const MANUAL_OVERRIDES = {
+  'past-R07-finance-02': 'accounting',
+  'past-R03-management-11': 'strategy'
+};
+
+function classify(question) {
+  const manual = MANUAL_OVERRIDES[question.id];
+  if (manual) return { category: manual, rule: 'manual' };
+  const text = [question.question, ...(question.choices || []), question.answer].join('\n');
+  for (const [category, pattern] of CATEGORY_RULES[question.subject] || []) {
+    if (pattern.test(text)) return { category, rule: pattern.source };
+  }
+  return { category: DEFAULT_CATEGORY[question.subject], rule: 'default' };
+}
+
+const categories = {};
+const report = {};
+const defaults = [];
+for (const question of questions) {
+  const result = classify(question);
+  categories[question.id] = result.category;
+  if (result.rule === 'default') defaults.push(question);
+  const key = `${question.subject}:${result.category}`;
+  report[key] = (report[key] || 0) + 1;
+}
+
+const output = `// Generated by scripts/build_past_question_categories.js.\nwindow.PAST_QUESTION_CATEGORIES = ${JSON.stringify(categories, null, 2)};\n`;
+fs.writeFileSync(outputPath, output, 'utf8');
+console.log(`Wrote ${Object.keys(categories).length} past-question category assignments.`);
+Object.entries(report).sort().forEach(([key, count]) => console.log(`${key}: ${count}`));
+console.log(`Default assignments: ${defaults.length}`);
+for (const question of defaults) console.log(`DEFAULT ${question.id}: ${question.question.replace(/\s+/g, ' ').slice(0, 110)}`);

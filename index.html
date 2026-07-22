@@ -105,7 +105,7 @@
 
   <section id="sessionResult" class="section">
     <div class="card pad solve-card">
-      <div class="between solve-head"><button id="resultBackBtn" class="btn" type="button">← 解答画面</button><button id="resultSelectBtn" class="btn" type="button">問題選択</button></div>
+      <div class="between solve-head"><button id="resultBackBtn" class="btn" type="button">← 解答画面</button><button id="resultSelectBtn" class="btn" type="button">科目選択へ</button></div>
       <h2>リザルト</h2>
       <div id="sessionScore" class="selection-summary"></div>
       <div id="sessionResultList" class="session-result-list"></div>
@@ -202,6 +202,7 @@
 
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="data/past_questions.js"></script>
+<script src="data/past_question_categories.js"></script>
 <script>
 const SUBJECTS=[
   {id:'economics',name:'経済学・経済政策',short:'経済'},
@@ -485,7 +486,8 @@ function distractors(subject,cat,seed,mode,variant){const peers=neighborSeeds(su
 function shortText(value,len=44){const text=String(value||'').replace(/\s+/g,'').replace(/。$/,'');return text.length>len?`${text.slice(0,len)}…`:text}
 function makePoint(seed,cat,mode,choices,answer,variant){const term=seed[0],definition=shortText(seed[1],14),others=choices.filter(c=>c!==answer).map(c=>shortText(c,10)),trap=others[variant%Math.max(1,others.length)]||'似た用語';if(mode==='reverse')return `試験では説明文から${term}を選ぶ。「${definition}」が決め手で、${trap}がひっかけ。`;return `試験では${term}の対象・目的を問う。「${term}」と${trap}を混同させるひっかけに注意。`}
 function cleanExtractedText(value){return String(value||'').replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0)).replace(/\s*\S*(?:JJII|iinndddd)[0-9０-９A-Za-z.\/:：\s]*$/gi,'').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim()}
-function normalizePastQuestion(q){const subject=SUBJECTS.find(s=>s.id===q.subject),question=cleanExtractedText(q.question),choices=(q.choices||[]).map(cleanExtractedText).filter(Boolean),answer=cleanExtractedText(q.answer);return {...q,question,choices,answer,subjectName:subject?subject.name:q.subject,category:'past-extracted',categoryName:'過去問抽出',sourceType:'past'}}
+function normalizeCategorizedPastQuestion(q){const subject=SUBJECTS.find(s=>s.id===q.subject),categoryId=window.PAST_QUESTION_CATEGORIES?.[q.id],category=(CATEGORY_DEFS[q.subject]||[]).find(item=>item.id===categoryId);if(!category)throw new Error(`Missing past-question category: ${q.id}`);const question=cleanExtractedText(q.question),choices=(q.choices||[]).map(cleanExtractedText).filter(Boolean),answer=cleanExtractedText(q.answer);return {...q,question,choices,answer,subjectName:subject?subject.name:q.subject,category:category.id,categoryName:category.name,sourceType:'past'}}
+function normalizePastQuestion(q){return normalizeCategorizedPastQuestion(q)}
 function normalizeFingerprint(value){return String(value||'').replace(/[Ａ-Ｚａ-ｚ０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0)).replace(/\s+/g,'').replace(/[A-ZＡ-Ｚ][社店]?|[0-9０-９]+/g,'').replace(/[。、，．,.・「」『』（）()]/g,'').toLowerCase()}
 function questionFingerprint(q){return [q.subject,q.category,q.topic,q.mode,normalizeFingerprint(q.question),normalizeFingerprint(q.answer),q.choices.map(normalizeFingerprint).sort().join('|')].join('::')}
 function selectedCountValue(select,available){const value=select.value;if(value==='all'||value==='year')return available;const n=Number(value);return Number.isFinite(n)?n:10}
@@ -600,6 +602,9 @@ function openPracticeQuestion(id){const q=ALL_PRACTICE_QUESTIONS.find(item=>item
 function openWeakList(source='all'){window.weakSource=source;showTab('weak')}
 function renderWeak(){const isPast=window.weakSource==='past',weak=ALL_PRACTICE_QUESTIONS.filter(q=>rec(q.id).flag&&(!isPast||q.sourceType==='past')),title=$('weakTitle');if(title)title.textContent=isPast?'模試でフラグを付けた問題':'フラグ付き問題';weakList.innerHTML=weak.map(q=>`<div class="weak-item"><div><strong>🚩 ${q.subjectName} No.${q.no}</strong><div class="small">${q.categoryName} / ${q.topic}</div></div><button class="btn" onclick="openPracticeQuestion('${q.id}')">開く</button></div>`).join('')||`<p class="small">${isPast?'模試でフラグを付けた問題はまだありません。':'フラグ付き問題はまだありません。'}</p>`}
 function renderAll(){renderDashboard();renderSide();renderPast();renderPastQuizSummary();renderResults();renderPdfList();renderWeak();renderSubjectChoices();renderGenreList();renderGenreProgress();renderQuizStep();renderResumeControls()}init();
+</script>
+<script>
+resultSelectBtn.onclick=()=>{if(solveBackTab==='pastQuiz'){showTab('pastQuiz');return}activeGenre='all';quizStep='subject';showTab('quiz')};
 </script>
 </body>
 </html>
