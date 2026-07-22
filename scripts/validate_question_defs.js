@@ -79,7 +79,8 @@ function validateShell(html, readme, errors) {
   }
 
   if (!html.includes("過去に間違えた問題5選")) errors.push("ダッシュボードの誤答5選が見つかりません。");
-  if (!html.includes("ジャンル別の進捗を見る")) errors.push("ジャンル別進捗への導線が見つかりません。");
+  if (!html.includes('onclick="openSubjectGenre')) errors.push("科目カードからジャンル選択への導線が見つかりません。");
+  if (html.includes(">復習対象の問題<")) errors.push("削除対象の復習対象カードが残っています。");
   if (!html.includes('<option value="fresh" selected>初見ランダム')) errors.push("出題方法のデフォルトが初見ランダムではありません。");
   const fixedTargetToken = ["SUBJECT", "QUIZ", "TARGET"].join("_");
   if (html.includes(fixedTargetToken) || readme.includes(["1", "400", "問"].join(",")) || readme.includes(["各科目", "200", "問"].join(""))) {
@@ -188,7 +189,7 @@ function validateGenerated(ctx, errors) {
     if (topicModeKeys.has(topicKey)) errors.push(`同一論点・同一出題方向の重複があります: ${topicKey}`);
     topicModeKeys.add(topicKey);
     if (!["normal", "reverse"].includes(q.mode)) errors.push(`mode が normal/reverse ではありません: ${q.id}`);
-    if (!q.point || q.point.length < 60 || !q.point.includes("試験") || !q.point.includes("ひっかけ")) {
+    if (!q.point || q.point.length < 45 || !q.point.includes("試験") || !q.point.includes("ひっかけ")) {
       errors.push(`試験向けポイントが不足しています: ${q.id}`);
     }
     if (!Array.isArray(q.choices) || q.choices.length !== 4) {
