@@ -9,6 +9,7 @@ const html = fs.readFileSync(htmlPath, "utf8");
 const readme = read("README.md");
 const pastQuestionsScript = read(path.join("data", "past_questions.js"));
 const pastQuestionCategoriesScript = read(path.join("data", "past_question_categories.js"));
+const studyGuidesScript = read(path.join("data", "study_guides.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.map(match => match[1]).find(script => script.includes("const SUBJECTS="));
 const errors = [];
@@ -37,7 +38,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -90,6 +91,7 @@ function validateShell(html, readme, errors) {
   }
 
   if (!html.includes("苦手な問題")) errors.push("ダッシュボードの苦手な問題スタートが見つかりません。");
+  if (!html.includes('src="data/study_guides.js"')) errors.push("解説・用語ガイドが読み込まれていません。");
   const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
   if (!home.includes('id="dailyStartBtn"')) errors.push("苦手な問題のスタートボタンが見つかりません。");
   if (home.includes('id="wrongFiveList"')) errors.push("苦手な問題の一覧が残っています。");
@@ -127,6 +129,8 @@ function validateScriptText(appScript, errors) {
   if (!appScript.includes("function reviewFiveSet")) errors.push("苦手な問題の5問抽出関数が見つかりません。");
   if (!appScript.includes("ALL_PRACTICE_QUESTIONS.filter")) errors.push("過去問を含む苦手問題の抽出が見つかりません。");
   if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
+  if (!appScript.includes("function explanationText")) errors.push("正解理由を組み立てる関数が見つかりません。");
+  if (!appScript.includes("function glossaryText")) errors.push("用語解説を組み立てる関数が見つかりません。");
 }
 
 function validateDefinitions(defs, errors) {
@@ -200,6 +204,9 @@ function validateGenerated(ctx, errors) {
   if (!Array.isArray(allPractice)) errors.push("ALL_PRACTICE_QUESTIONS が配列ではありません。");
   if (!Array.isArray(pdfItems)) errors.push("PDF_ITEMS が配列ではありません。");
   if (!mockSpecs || typeof mockSpecs !== "object") errors.push("MOCK_SPECS が読み込めません。");
+  if (!ctx.window.STUDY_GUIDES || typeof ctx.window.STUDY_GUIDES !== "object") {
+    errors.push("解説・用語ガイドが読み込めません。");
+  }
   if (typeof dashboardCards !== "string") {
     errors.push("ダッシュボード進捗カードを生成できません。");
   } else {
@@ -231,6 +238,14 @@ function validateGenerated(ctx, errors) {
       errors.push(`過去問の選択肢または正答が不正です: ${q.id}`);
     }
     if (!q.sourcePdf || !q.answerPdf) errors.push(`過去問の出典PDFが不足しています: ${q.id}`);
+    const explanation = ctx.explanationText(q);
+    if (!explanation || !explanation.includes("正解肢の") || explanation.includes("公式PDF")) {
+      errors.push(`過去問の正解理由が不足しています: ${q.id}`);
+    }
+    const glossary = ctx.glossaryText(q);
+    if (!glossary || !glossary.includes("：")) {
+      errors.push(`過去問の用語解説が不足しています: ${q.id}`);
+    }
   }
 
   if (mockSpecs && typeof mockSpecs === "object") {
