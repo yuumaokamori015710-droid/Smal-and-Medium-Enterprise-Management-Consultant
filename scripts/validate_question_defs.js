@@ -40,6 +40,7 @@ if (!appScript) {
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
+    runtimeCtx.__overallProgress = runtimeCtx.overallProgressHtml();
     validateGenerated(runtimeCtx, errors);
   } catch (error) {
     errors.push(`問題生成に失敗しました: ${error.message}`);
@@ -83,9 +84,11 @@ function validateShell(html, readme, errors) {
     if (!html.includes(section)) errors.push(`必要な画面または領域が見つかりません: ${section}`);
   }
 
-  if (!html.includes("過去に間違えた問題5選")) errors.push("ダッシュボードの誤答5選が見つかりません。");
+  if (!html.includes("苦手な問題5選")) errors.push("ダッシュボードの苦手な問題5選が見つかりません。");
   const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
-  if ((home.match(/過去に間違えた問題5選/g) || []).length !== 1) errors.push("ダッシュボードの誤答5選が重複しています。");
+  if ((home.match(/苦手な問題5選/g) || []).length !== 1) errors.push("ダッシュボードの苦手な問題5選が重複しています。");
+  if (home.includes("過去に間違えた問題5選")) errors.push("旧名称の誤答5選が残っています。");
+  if (home.indexOf("苦手な問題5選") > home.indexOf('id="overallProgressPanel"')) errors.push("苦手な問題5選が全体進捗より下にあります。");
   if (/(dailyStartBtn|practiceHomeBtn|mockHomeBtn|pastHomeBtn|dashboardPdfBtn|dashboardPdfBox|recentHistoryList)/.test(home)) {
     errors.push("ダッシュボードに不要なショートカットまたはカードが残っています。");
   }
@@ -178,6 +181,7 @@ function validateGenerated(ctx, errors) {
   const allPractice = ctx.__all;
   const pdfItems = ctx.__pdf;
   const dashboardCards = ctx.__dashboardCards;
+  const overallProgress = ctx.__overallProgress;
 
   if (!Array.isArray(generated) || !generated.length) errors.push("GENERATED_QUESTIONS が空です。");
   if (!Array.isArray(extracted)) errors.push("EXTRACTED_QUESTIONS が配列ではありません。");
@@ -189,9 +193,13 @@ function validateGenerated(ctx, errors) {
   } else {
     const subjectCards = dashboardCards.match(/class="subject-progress-card"/g) || [];
     if (subjectCards.length !== 7) errors.push(`科目進捗カードが7枚ではありません: ${subjectCards.length}`);
-    if (!dashboardCards.includes('class="overall-progress-card"')) errors.push("全体進捗カードがありません。");
-    if (!dashboardCards.includes("難問 0 / 0問")) errors.push("難問のクリア数/総数表示がありません。");
-    if (dashboardCards.includes("登録問題数") || dashboardCards.includes("解答済み")) errors.push("進捗カードに問題数の内訳が残っています。");
+    if (dashboardCards.includes("難問") || dashboardCards.includes("登録問題数") || dashboardCards.includes("解答済み")) errors.push("科目進捗カードに不要な情報が残っています。");
+  }
+  if (typeof overallProgress !== "string") {
+    errors.push("全体進捗カードを生成できません。");
+  } else {
+    if (!overallProgress.includes('class="overall-progress-card"') || !overallProgress.includes('class="ring compact-ring"')) errors.push("円グラフ付きの全体進捗カードがありません。");
+    if (!overallProgress.includes("回答済み 0 / ")) errors.push("全体進捗に回答済み数がありません。");
   }
   if (questions.some(q => q.sourceType === "past")) errors.push("QUESTIONS に過去問抽出問題が混入しています。");
   if (extracted.some(q => q.sourceType !== "past")) errors.push("EXTRACTED_QUESTIONS に過去問以外の sourceType が含まれています。");
