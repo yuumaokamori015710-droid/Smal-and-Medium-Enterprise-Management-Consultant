@@ -12,15 +12,21 @@ ROOT = Path(__file__).resolve().parents[1]
 PDF_DIR = ROOT / "tmp" / "pdfs"
 OUT_DIR = ROOT / "data"
 OUT_FILE = OUT_DIR / "past_exam_questions.json"
+TARGET_SUBJECTS = set(sys.argv[1:])
+FAILURE_SUBJECT_MAP = {
+    "strategy": "management",
+    "it": "systems",
+    "policy": "sme",
+}
 
 SUBJECTS = [
     ("economics", "経済学・経済政策", "A"),
     ("finance", "財務・会計", "B"),
-    ("strategy", "企業経営理論", "C"),
+    ("management", "企業経営理論", "C"),
     ("operations", "運営管理", "D"),
     ("law", "経営法務", "E"),
-    ("it", "経営情報システム", "F"),
-    ("policy", "中小企業経営・政策", "G"),
+    ("systems", "経営情報システム", "F"),
+    ("sme", "中小企業経営・中小企業政策", "G"),
 ]
 
 YEARS = [
@@ -89,9 +95,7 @@ def split_questions(text: str):
 
 
 def parse_choices(body: str):
-    if "〔解答群〕" not in body:
-        return []
-    block = body.split("〔解答群〕", 1)[1]
+    block = body.split("〔解答群〕", 1)[1] if "〔解答群〕" in body else body
     lines = [line.strip() for line in block.splitlines() if line.strip()]
     choices = []
     current = ""
@@ -145,10 +149,20 @@ def full_answer(answer: str, choices):
 def main() -> int:
     PDF_DIR.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    records = []
-    failures = []
+    existing = {"questions": [], "failures": []}
+    if TARGET_SUBJECTS and OUT_FILE.exists():
+        existing = json.loads(OUT_FILE.read_text(encoding="utf-8"))
+    records = [item for item in existing.get("questions", []) if item.get("subject") not in TARGET_SUBJECTS]
+    failures = [
+        item
+        for item in existing.get("failures", [])
+        if item.get("subject") not in TARGET_SUBJECTS
+        and FAILURE_SUBJECT_MAP.get(item.get("subject"), item.get("subject")) not in TARGET_SUBJECTS
+    ]
     for year_name, era, base, make_name in YEARS:
         for si, (subject_id, subject_name, letter) in enumerate(SUBJECTS):
+            if TARGET_SUBJECTS and subject_id not in TARGET_SUBJECTS:
+                continue
             paper_url = base + make_name(letter)
             answer_url = ANSWER_PDFS[era][si]
             paper_path = PDF_DIR / era / f"{subject_id}.pdf"

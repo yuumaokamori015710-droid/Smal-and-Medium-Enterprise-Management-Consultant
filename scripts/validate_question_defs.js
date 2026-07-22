@@ -36,7 +36,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;`,
+      `${pastQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -58,7 +58,7 @@ console.log("Question definition validation passed.");
 function validateShell(html, readme, errors) {
   const requiredTabs = [
     'data-tab="home">ダッシュボード',
-    'data-tab="pastQuiz">実践問題',
+    'data-tab="pastQuiz">模試を受ける',
     'data-tab="pdf">PDF',
     'data-tab="history">学習履歴',
     'data-tab="settings"'
@@ -96,6 +96,9 @@ function validateShell(html, readme, errors) {
   if (!html.includes('onclick="openSubjectGenre')) errors.push("科目カードからジャンル選択への導線が見つかりません。");
   if (html.includes(">復習対象の問題<")) errors.push("削除対象の復習対象カードが残っています。");
   if (!html.includes('<option value="fresh" selected>初見ランダム')) errors.push("出題方法のデフォルトが初見ランダムではありません。");
+  if (!html.includes("const MOCK_SPECS=")) errors.push("科目別の模試設定がありません。");
+  if (!html.includes('id="pastQuizSubject"')) errors.push("模試の科目選択がありません。");
+  if (/(pastQuizYear|pastQuizLimit|pastQuizOrder|pastPracticeMode)/.test(html)) errors.push("模試に不要な選択項目が残っています。");
   const fixedTargetToken = ["SUBJECT", "QUIZ", "TARGET"].join("_");
   if (html.includes(fixedTargetToken) || readme.includes(["1", "400", "問"].join(",")) || readme.includes(["各科目", "200", "問"].join(""))) {
     errors.push("固定問題数仕様の残骸があります。");
@@ -181,6 +184,7 @@ function validateGenerated(ctx, errors) {
   const categoryDefs = ctx.__cats;
   const allPractice = ctx.__all;
   const pdfItems = ctx.__pdf;
+  const mockSpecs = ctx.__mockSpecs;
   const dashboardCards = ctx.__dashboardCards;
   const overallProgress = ctx.__overallProgress;
 
@@ -189,13 +193,15 @@ function validateGenerated(ctx, errors) {
   if (!Array.isArray(questions)) errors.push("QUESTIONS が配列ではありません。");
   if (!Array.isArray(allPractice)) errors.push("ALL_PRACTICE_QUESTIONS が配列ではありません。");
   if (!Array.isArray(pdfItems)) errors.push("PDF_ITEMS が配列ではありません。");
+  if (!mockSpecs || typeof mockSpecs !== "object") errors.push("MOCK_SPECS が読み込めません。");
   if (typeof dashboardCards !== "string") {
     errors.push("ダッシュボード進捗カードを生成できません。");
   } else {
-    const subjectCards = dashboardCards.match(/class="subject-progress-card"/g) || [];
+    const subjectCards = dashboardCards.match(/class="subject-progress-card(?:\s|")/g) || [];
     if (subjectCards.length !== 7) errors.push(`科目進捗カードが7枚ではありません: ${subjectCards.length}`);
     if (dashboardCards.includes("難問") || dashboardCards.includes("登録問題数")) errors.push("科目進捗カードに不要な情報が残っています。");
     if (!dashboardCards.includes("回答済み 0 / ")) errors.push("科目進捗カードに回答済み数がありません。");
+    if (!dashboardCards.includes('class="subject-progress-bar"')) errors.push("科目進捗カードに進捗バーがありません。");
   }
   if (typeof overallProgress !== "string") {
     errors.push("全体進捗カードを生成できません。");
@@ -208,6 +214,32 @@ function validateGenerated(ctx, errors) {
   if (new Set(questions.map(q => q.id)).size !== questions.length) errors.push("QUESTIONS に ID 重複があります。");
   if (new Set(allPractice.map(q => q.id)).size !== allPractice.length) errors.push("ALL_PRACTICE_QUESTIONS に ID 重複があります。");
   if (allPractice.length !== questions.length + extracted.length) errors.push("ALL_PRACTICE_QUESTIONS がクイズ+過去問抽出の合計と一致しません。");
+
+  const normalizedPastQuestions = new Set();
+  for (const q of extracted) {
+    const normalized = String(q.question || "").normalize("NFKC").replace(/[\s\p{P}\p{S}]/gu, "");
+    if (!normalized) errors.push(`過去問の問題文が空です: ${q.id}`);
+    if (normalizedPastQuestions.has(normalized)) errors.push(`過去問に正規化後の重複があります: ${q.id}`);
+    normalizedPastQuestions.add(normalized);
+    if (!Array.isArray(q.choices) || q.choices.length < 4 || !q.choices.includes(q.answer)) {
+      errors.push(`過去問の選択肢または正答が不正です: ${q.id}`);
+    }
+    if (!q.sourcePdf || !q.answerPdf) errors.push(`過去問の出典PDFが不足しています: ${q.id}`);
+  }
+
+  if (mockSpecs && typeof mockSpecs === "object") {
+    for (const subject of subjects) {
+      const spec = mockSpecs[subject.id];
+      if (!spec || !Number.isInteger(spec.questions) || !Number.isInteger(spec.minutes)) {
+        errors.push(`${subject.name}: 模試設定が不正です。`);
+        continue;
+      }
+      const available = extracted.filter(q => q.subject === subject.id).length;
+      if (available < spec.questions) {
+        errors.push(`${subject.name}: 模試の必要問題数 ${spec.questions} 問に対し、過去問が ${available} 問です。`);
+      }
+    }
+  }
 
   const fingerprints = new Set();
   const topicModeKeys = new Set();

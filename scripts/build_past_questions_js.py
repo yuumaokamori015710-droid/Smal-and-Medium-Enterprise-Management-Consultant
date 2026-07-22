@@ -12,9 +12,10 @@ SUBJECT_MAP = {
 }
 
 LAYOUT_DEPENDENT = re.compile(
-    r"図|表|下図|下表|上図|次図|グラフ|画像|体系図|散布図|模式図|チャート|"
+    r"下図|上図|次図|図中|図\s*[0-9０-９]|グラフ|画像|体系図|散布図|模式図|チャート|"
     r"マトリックス|曲線|線分|点線|実線|矢印|空\s*欄|穴埋め|下線部|囲み|"
-    r"フローチャート|ネットワーク図|回路|画面|帳票|資料\s*\d|ケース図"
+    r"フローチャート|ネットワーク図|回路図|画面|帳票|ケース図|"
+    r"下表|上表|次表|表中|表\s*[0-9０-９]"
 )
 PDF_ARTIFACT = re.compile(r"\s*\S*(?:JJII|iinndddd)[0-9０-９A-Za-z./:：\s]*$", re.I)
 
@@ -37,6 +38,23 @@ def clean_line(line):
     return s
 
 
+def starts_new_block(line):
+    return bool(
+        line.startswith(("【", "〔", "出所：", "注）", "注:", "※"))
+        or re.match(r"^(?:[ａ-ｚＡ-Ｚ]|[①-⑳]|[0-9０-９]+[\.．)）])\s*", line)
+    )
+
+
+def question_stem(value):
+    if "〔解答群〕" in value:
+        return value.split("〔解答群〕", 1)[0].strip()
+    lines = value.splitlines()
+    for index, line in enumerate(lines):
+        if re.match(r"^\s*[アイウエオカキクケコ]\s+", line):
+            return "\n".join(lines[:index]).strip()
+    return value.strip()
+
+
 def join_japanese_lines(lines):
     cleaned = [clean_line(line) for line in lines]
     cleaned = [line for line in cleaned if line]
@@ -46,23 +64,29 @@ def join_japanese_lines(lines):
     if re.fullmatch(r"第\d+問", cleaned[0]):
         title = cleaned.pop(0)
     parts = []
+    current = ""
     for line in cleaned:
-        if line.startswith(("出所：", "注）", "注:", "※")):
-            parts.append("\n" + line)
-        elif not parts:
-            parts.append(line)
-        elif re.search(r"[A-Za-z0-9]$", parts[-1]) and re.match(r"^[A-Za-z0-9]", line):
-            parts[-1] += " " + line
+        if starts_new_block(line):
+            if current:
+                parts.append(current)
+            current = line
+        elif not current:
+            current = line
+        elif re.search(r"[A-Za-z0-9]$", current) and re.match(r"^[A-Za-z0-9]", line):
+            current += " " + line
         else:
-            parts[-1] += line
-    body = "\n".join(part.strip() for part in parts if part.strip())
+            current += line
+    if current:
+        parts.append(current)
+    body = "\n\n".join(part.strip() for part in parts if part.strip())
     return f"{title}\n{body}" if title else body
 
 
 def is_quiz_usable(q, body):
     if not q.get("choices") or q.get("answer") not in q.get("choices", []):
         return False
-    if LAYOUT_DEPENDENT.search(body):
+    compact_body = re.sub(r"\s+", "", body)
+    if LAYOUT_DEPENDENT.search(body) or LAYOUT_DEPENDENT.search(compact_body):
         return False
     if any(LAYOUT_DEPENDENT.search(choice) for choice in q.get("choices", [])):
         return False
@@ -72,11 +96,16 @@ def is_quiz_usable(q, body):
 
 
 out = []
+seen_questions = set()
 for q in src:
-    body = q["question"].split("〔解答群〕", 1)[0].strip()
+    body = question_stem(q["question"])
     if not is_quiz_usable(q, body):
         continue
     question = join_japanese_lines(body.splitlines())
+    fingerprint = re.sub(r"[\s、。,.・「」『』（）()]", "", question)
+    if fingerprint in seen_questions:
+        continue
+    seen_questions.add(fingerprint)
     out.append({
         "id": "past-" + q["id"],
         "subject": SUBJECT_MAP.get(q["subject"], q["subject"]),
