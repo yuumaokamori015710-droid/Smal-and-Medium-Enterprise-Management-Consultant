@@ -57,19 +57,22 @@ console.log("Question definition validation passed.");
 
 function validateShell(html, readme, errors) {
   const requiredTabs = [
-    'data-tab="home">ダッシュボード',
-    'data-tab="pastQuiz">模試を受ける',
-    'data-tab="pdf">PDF',
-    'data-tab="history">学習履歴',
-    'data-tab="settings"'
+    ["home", "ホーム"],
+    ["quiz", "問題"],
+    ["pastQuiz", "模試"],
+    ["pdf", "PDF"],
+    ["history", "履歴"],
+    ["settings", "設定"]
   ];
-  for (const tab of requiredTabs) {
-    if (!html.includes(tab)) errors.push(`上部タブが仕様と一致しません: ${tab}`);
+  const nav = html.match(/<nav class="bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+  for (const [id, label] of requiredTabs) {
+    if (!nav.includes(`data-tab="${id}"`) || !nav.includes(`>${label}<`)) {
+      errors.push(`下部ナビが仕様と一致しません: ${id} / ${label}`);
+    }
   }
-  const nav = html.match(/<nav class="tabs"[\s\S]*?<\/nav>/)?.[0] || "";
   const navTabIds = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(match => match[1]);
-  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "pastQuiz", "pdf", "history", "settings"])) {
-    errors.push(`上部タブの構成が5項目ではありません: ${navTabIds.join(", ")}`);
+  if (JSON.stringify(navTabIds) !== JSON.stringify(["home", "quiz", "pastQuiz", "pdf", "history", "settings"])) {
+    errors.push(`下部ナビの構成が6項目ではありません: ${navTabIds.join(", ")}`);
   }
   if (/<button[^>]+id="themeBtn"/.test(html)) errors.push("独立したテーマ切替ボタンが残っています。");
 
