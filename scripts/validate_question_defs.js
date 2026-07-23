@@ -90,13 +90,14 @@ function validateShell(html, readme, errors) {
     if (!html.includes(section)) errors.push(`必要な画面または領域が見つかりません: ${section}`);
   }
 
-  if (!html.includes("苦手な問題")) errors.push("ダッシュボードの苦手な問題スタートが見つかりません。");
+  if (!html.includes("間違えた問題")) errors.push("ダッシュボードの間違えた問題スタートが見つかりません。");
   if (!html.includes('src="data/study_guides.js"')) errors.push("解説・用語ガイドが読み込まれていません。");
   const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
-  if (!home.includes('id="dailyStartBtn"')) errors.push("苦手な問題のスタートボタンが見つかりません。");
-  if (home.includes('id="wrongFiveList"')) errors.push("苦手な問題の一覧が残っています。");
+  if (!home.includes('id="dailyStartBtn"')) errors.push("間違えた問題のスタートボタンが見つかりません。");
+  if (!home.includes('id="wrongQuestionTotal"')) errors.push("間違えた問題の総数表示が見つかりません。");
+  if (home.includes('id="wrongFiveList"')) errors.push("間違えた問題の一覧が残っています。");
   if (home.includes("過去に間違えた問題5選")) errors.push("旧名称の誤答5選が残っています。");
-  if (home.indexOf('id="dailyStartBtn"') > home.indexOf('id="overallProgressPanel"')) errors.push("苦手な問題のスタートが全体進捗より下にあります。");
+  if (home.indexOf('id="dailyStartBtn"') > home.indexOf('id="overallProgressPanel"')) errors.push("間違えた問題のスタートが全体進捗より下にあります。");
   if (/(practiceHomeBtn|mockHomeBtn|pastHomeBtn|dashboardPdfBtn|dashboardPdfBox|recentHistoryList)/.test(home)) {
     errors.push("ダッシュボードに不要なショートカットまたはカードが残っています。");
   }
@@ -126,8 +127,9 @@ function validateScriptText(appScript, errors) {
     errors.push("topicSeed() にフォールバック生成が残っています。");
   }
   if (!appScript.includes("function filterByOrder")) errors.push("出題モードの抽出関数が見つかりません。");
-  if (!appScript.includes("function reviewFiveSet")) errors.push("苦手な問題の5問抽出関数が見つかりません。");
-  if (!appScript.includes("ALL_PRACTICE_QUESTIONS.filter")) errors.push("過去問を含む苦手問題の抽出が見つかりません。");
+  if (!appScript.includes("function wrongCandidates")) errors.push("間違えた問題の抽出関数が見つかりません。");
+  if (!appScript.includes("function wrongFiveSet")) errors.push("間違えた問題の5問抽出関数が見つかりません。");
+  if (!appScript.includes("ALL_PRACTICE_QUESTIONS.filter")) errors.push("過去問を含む間違えた問題の抽出が見つかりません。");
   if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
   if (!appScript.includes("function explanationText")) errors.push("正解理由を組み立てる関数が見つかりません。");
   if (!appScript.includes("function glossaryText")) errors.push("用語解説を組み立てる関数が見つかりません。");
@@ -296,6 +298,21 @@ function validateGenerated(ctx, errors) {
   for (const item of pdfItems) {
     for (const field of ["id", "name", "type", "subject", "genre", "year", "examStage", "url"]) {
       if (!item[field]) errors.push(`PDF_ITEMS の ${field} が不足しています: ${JSON.stringify(item)}`);
+    }
+  }
+
+  if (allPractice.length >= 3 && typeof ctx.wrongCandidates === "function" && typeof ctx.wrongFiveSet === "function") {
+    const [recentWrong, olderWrong, dueOnly] = allPractice;
+    Object.assign(ctx.rec(recentWrong.id), { miss: 1, lastWrongAt: 200 });
+    Object.assign(ctx.rec(olderWrong.id), { miss: 2, lastWrongAt: 100 });
+    Object.assign(ctx.rec(dueOnly.id), { seen: true, dueAt: 0 });
+    const wrongIds = ctx.wrongCandidates().map(question => question.id);
+    const pickedIds = ctx.wrongFiveSet().map(question => question.id);
+    if (wrongIds.length !== 2 || wrongIds.includes(dueOnly.id)) {
+      errors.push("間違えた問題の総数に、誤答していない復習対象が混入しています。");
+    }
+    if (JSON.stringify(pickedIds) !== JSON.stringify([recentWrong.id, olderWrong.id])) {
+      errors.push("間違えた問題の5問出題が、最終誤答日の新しい順になっていません。");
     }
   }
 }
