@@ -68,7 +68,7 @@ body.immersive .bottom-nav{opacity:1;pointer-events:auto;transform:translateX(-5
   <section id="home" class="section active">
     <div class="dashboard">
       <div class="dashboard-block">
-        <h2>苦手な問題</h2>
+        <div class="between"><h2>間違えた問題</h2><span id="wrongQuestionTotal" class="pill">合計 0問</span></div>
         <button id="dailyStartBtn" class="btn primary big-start" type="button">スタート</button>
       </div>
       <div id="overallProgressPanel" aria-label="全体進捗"></div>
@@ -563,7 +563,8 @@ function updateCountdown(){const box=$('countdown');if(!box)return;const target=
 function showTab(id){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));document.body.classList.toggle('immersive',id==='solve'||id==='sessionResult');window.scrollTo(0,0);renderAll()}
 function todaySolved(){const start=new Date();start.setHours(0,0,0,0);return QUESTIONS.filter(q=>rec(q.id).lastAt>=start.getTime()).length}
 function weakCandidates(){const now=Date.now();return ALL_PRACTICE_QUESTIONS.filter(q=>{const r=rec(q.id);return r.seen&&(r.lastOk===false||((r.miss||0)>0&&(!r.dueAt||r.dueAt<=now))||((r.level||0)===0&&r.lastOk!==true))})}
-function reviewFiveSet(){const weak=weakCandidates().sort((a,b)=>reviewPriority(a)-reviewPriority(b)||((rec(b.id).miss||0)-(rec(a.id).miss||0))),picked=[];for(const q of weak){if(picked.length<5)picked.push(q)}if(picked.length<5){const due=ALL_PRACTICE_QUESTIONS.filter(q=>!picked.includes(q)&&rec(q.id).seen&&rec(q.id).dueAt<=Date.now()).sort((a,b)=>reviewPriority(a)-reviewPriority(b));for(const q of due){if(picked.length<5)picked.push(q)}}return picked.slice(0,5)}
+function wrongCandidates(){return ALL_PRACTICE_QUESTIONS.filter(q=>(rec(q.id).miss||0)>0)}
+function wrongFiveSet(){return wrongCandidates().sort((a,b)=>(rec(b.id).lastWrongAt||0)-(rec(a.id).lastWrongAt||0)||((rec(b.id).miss||0)-(rec(a.id).miss||0))).slice(0,5)}
 function setDashboardPanel(panel){const history=panel==='history',overviewBtn=$('dashboardOverviewBtn'),historyBtn=$('dashboardHistoryBtn'),overview=$('dashboardOverviewPanel'),historyPanel=$('dashboardHistoryPanel');if(!overviewBtn||!historyBtn||!overview||!historyPanel)return;overviewBtn.classList.toggle('active',!history);historyBtn.classList.toggle('active',history);overview.classList.toggle('hide',history);historyPanel.classList.toggle('hide',!history)}
 function formatDate(ts){if(!ts)return '-';return new Date(ts).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})}
 function formatDateTime(ts){if(!ts)return '-';return new Date(ts).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
@@ -585,12 +586,12 @@ function progressCardHtml(name,qs,attributes='',className=''){const seen=qs.filt
 function subjectProgressHtml(){return SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id);return progressCardHtml(s.name,qs,`onclick="openSubjectGenre('${s.id}')" aria-label="${escapeHtml(s.name)}のジャンルを選択"`)}).join('')}
 function renderReviewTargets(){if(!reviewTargetsList)return;const items=weakCandidates().sort((a,b)=>reviewPriority(a)-reviewPriority(b)).slice(0,5);reviewTargetsList.innerHTML=items.map(q=>`<div class="mini-item"><strong>${escapeHtml(q.topic)}</strong><div class="small">${escapeHtml(q.subjectName)} / ${escapeHtml(q.categoryName)} / 期限 ${formatDate(rec(q.id).dueAt)}</div></div>`).join('')||'<p class="small">現時点の復習対象はありません。</p>'}
 function renderDashboardPdf(){if(!dashboardPdfBox)return;const items=[...PDF_ITEMS].sort((a,b)=>Number(!pdfRec(a.id).done)-Number(!pdfRec(b.id).done)||(pdfRec(b.id).lastViewedAt||0)-(pdfRec(a.id).lastViewedAt||0)).slice(0,3);dashboardPdfBox.innerHTML=items.map(p=>{const r=pdfRec(p.id);return `<div class="mini-item"><strong>${escapeHtml(p.name)}</strong><div class="small">${escapeHtml(p.subject)} / ${escapeHtml(p.year)} / ${r.done?'学習済み':'未学習'} / 最終閲覧 ${formatDate(r.lastViewedAt)}</div></div>`}).join('')||'<p class="small">PDFは登録されていません。</p>'}
-function renderDashboard(){if(overallProgressPanel)overallProgressPanel.innerHTML=overallProgressHtml();if(subjectProgressList)subjectProgressList.innerHTML=subjectProgressHtml()}
+function renderDashboard(){if(overallProgressPanel)overallProgressPanel.innerHTML=overallProgressHtml();if(subjectProgressList)subjectProgressList.innerHTML=subjectProgressHtml();const wrongTotal=$('wrongQuestionTotal');if(wrongTotal)wrongTotal.textContent=`合計 ${wrongCandidates().length}問`}
 function showPracticeHome(){quizStep='subject';renderQuizStep();showTab('quiz')}
 function openReviewMode(){quizOrder.value='review';quizStep='subject';renderQuizStep();showTab('quiz')}
 function beginDashboardQuiz(limit){clearSavedSession();solveBackTab='home';const qs=QUESTIONS.filter(q=>!rec(q.id).seen);set=pickSet(qs,Math.min(limit,qs.length),'fresh');idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
-function beginWeakFiveQuiz(){const weak=reviewFiveSet();if(!weak.length){alert('苦手な問題はまだありません。');return}clearSavedSession();solveBackTab='home';set=weak;idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
-function beginDailyQuiz(){beginWeakFiveQuiz()}
+function beginWrongFiveQuiz(){const wrong=wrongFiveSet();if(!wrong.length){alert('間違えた問題はまだありません。');return}clearSavedSession();solveBackTab='home';set=wrong;idx=0;currentResult=null;sessionAnswers={};examSession=false;examStartedAt=Date.now();examFinalized=false;showTab('solve');window.location.hash='solve';renderQuiz()}
+function beginDailyQuiz(){beginWrongFiveQuiz()}
 function beginMockQuiz(){showTab('pastQuiz')}
 function renderSubjectChoices(){subjectChoiceList.innerHTML=SUBJECTS.map(s=>{const qs=QUESTIONS.filter(q=>q.subject===s.id);return progressCardHtml(s.name,qs,`data-subject-choice="${s.id}" aria-label="${escapeHtml(s.name)}を選択"`,s.id===quizSubject.value?'active subject-choice':'subject-choice')}).join('')}
 function mockResultLabel(subjectId){const last=latestMockResult(subjectId);return last?`前回実績 ${last.ok}/${last.total}問 / ${last.rate}% / ${last.judgment}`:'前回実績 なし'}
