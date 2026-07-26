@@ -155,6 +155,10 @@
     ]}
   };
 
+  function sentenceBody(value) {
+    return String(value || '').replace(/[。．.!！?？]+$/, '');
+  }
+
   function termQuestion(subject, category, row, rows, index, number) {
     const distractors = [];
     for (let offset = 1; distractors.length < 3 && offset < rows.length; offset += 1) {
@@ -167,7 +171,7 @@
       questionType: 'term', question: `「${row.term}」の説明として最も適切なものはどれか。`,
       choices: [row.definition, ...distractors], answer: row.definition, correctAnswer: row.definition,
       shortExplanation: `${row.term}は、${row.definition}`,
-      detailedExplanation: `一言でいうと、${row.definition}。例えば、${row.example}。${row.contrast}`,
+      detailedExplanation: `一言でいうと、${sentenceBody(row.definition)}。例えば、${sentenceBody(row.example)}。${sentenceBody(row.contrast)}。`,
       examPoint: row.examPoint, commonTrap: row.commonTrap, relatedTerms: row.relatedTerms,
       difficulty: row.difficulty || 1, tags: ['質問ベース', '用語', row.term, ...(row.relatedTerms || [])],
       needsReview: !!row.needsReview, referenceDate: row.referenceDate || null,

@@ -258,6 +258,7 @@ function validateGenerated(ctx, errors) {
     if (!Array.isArray(q.choices) || !choiceCountIsValid || new Set(q.choices).size !== q.choices.length || !q.choices.includes(q.answer)) errors.push(`質問ベース問題集の選択肢または正答が不正です: ${q.id}`);
     if (!Number.isInteger(q.difficulty) || q.difficulty < 1 || q.difficulty > 3) errors.push(`質問ベース問題集の難易度が不正です: ${q.id}`);
     if (!Array.isArray(q.tags) || !q.tags.length) errors.push(`質問ベース問題集のタグが不足しています: ${q.id}`);
+    if (/。。|！！|？？/.test(q.detailedExplanation || '')) errors.push(`質問ベース問題集の詳しい解説に句読点の重複があります: ${q.id}`);
     if (q.needsReview) reviewRequiredCount++;
   }
   if (study.length < 120) errors.push(`質問ベース問題集が不足しています: ${study.length}問`);
