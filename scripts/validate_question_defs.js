@@ -10,6 +10,7 @@ const readme = read("README.md");
 const pastQuestionsScript = read(path.join("data", "past_questions.js"));
 const pastQuestionCategoriesScript = read(path.join("data", "past_question_categories.js"));
 const studyGuidesScript = read(path.join("data", "study_guides.js"));
+const studyQuestionsScript = read(path.join("data", "study_questions.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.map(match => match[1]).find(script => script.includes("const SUBJECTS="));
 const errors = [];
@@ -38,7 +39,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -92,6 +93,11 @@ function validateShell(html, readme, errors) {
 
   if (!html.includes("間違えた問題")) errors.push("ダッシュボードの間違えた問題スタートが見つかりません。");
   if (!html.includes('src="data/study_guides.js"')) errors.push("解説・用語ガイドが読み込まれていません。");
+  if (!html.includes('src="data/study_questions.js"')) errors.push("質問ベース問題集データが読み込まれていません。");
+  for (const token of ['id="quizCollection"', 'id="quizQuestionType"', 'id="openPointsBtn"', 'id="points"']) {
+    if (!html.includes(token)) errors.push(`質問ベース問題集のUIが不足しています: ${token}`);
+  }
+  if (!html.includes("中小企業診断士合格のポイント")) errors.push("合格のポイント画面が見つかりません。");
   const home = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0] || "";
   if (!home.includes('id="dailyStartBtn"')) errors.push("間違えた問題のスタートボタンが見つかりません。");
   if (!home.includes('id="wrongQuestionTotal"')) errors.push("間違えた問題の総数表示が見つかりません。");
@@ -133,6 +139,9 @@ function validateScriptText(appScript, errors) {
   if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
   if (!appScript.includes("function explanationText")) errors.push("正解理由を組み立てる関数が見つかりません。");
   if (!appScript.includes("function glossaryText")) errors.push("用語解説を組み立てる関数が見つかりません。");
+  if (!appScript.includes("function activeQuizPool")) errors.push("問題セットを切り替える関数が見つかりません。");
+  if (!appScript.includes("function filterQuestionType")) errors.push("問題形式フィルタが見つかりません。");
+  if (!appScript.includes("function answerSupplementHtml")) errors.push("質問ベース問題集の詳細解説表示が見つかりません。");
 }
 
 function validateDefinitions(defs, errors) {
@@ -191,6 +200,7 @@ function validateDefinitions(defs, errors) {
 function validateGenerated(ctx, errors) {
   const generated = ctx.__generated;
   const extracted = ctx.__extracted;
+  const study = ctx.__study;
   const questions = ctx.__questions;
   const subjects = ctx.__subjects;
   const categoryDefs = ctx.__cats;
@@ -202,6 +212,7 @@ function validateGenerated(ctx, errors) {
 
   if (!Array.isArray(generated) || !generated.length) errors.push("GENERATED_QUESTIONS が空です。");
   if (!Array.isArray(extracted)) errors.push("EXTRACTED_QUESTIONS が配列ではありません。");
+  if (!Array.isArray(study) || !study.length) errors.push("STUDY_QUESTIONS が空です。");
   if (!Array.isArray(questions)) errors.push("QUESTIONS が配列ではありません。");
   if (!Array.isArray(allPractice)) errors.push("ALL_PRACTICE_QUESTIONS が配列ではありません。");
   if (!Array.isArray(pdfItems)) errors.push("PDF_ITEMS が配列ではありません。");
@@ -228,7 +239,45 @@ function validateGenerated(ctx, errors) {
   if (extracted.some(q => q.sourceType !== "past")) errors.push("EXTRACTED_QUESTIONS に過去問以外の sourceType が含まれています。");
   if (new Set(questions.map(q => q.id)).size !== questions.length) errors.push("QUESTIONS に ID 重複があります。");
   if (new Set(allPractice.map(q => q.id)).size !== allPractice.length) errors.push("ALL_PRACTICE_QUESTIONS に ID 重複があります。");
-  if (allPractice.length !== questions.length + extracted.length) errors.push("ALL_PRACTICE_QUESTIONS がクイズ+過去問抽出の合計と一致しません。");
+  if (allPractice.length !== questions.length + study.length + extracted.length) errors.push("ALL_PRACTICE_QUESTIONS がクイズ+質問ベース問題集+過去問抽出の合計と一致しません。");
+
+  const requiredStudyFields = ['id', 'subject', 'category', 'questionType', 'question', 'correctAnswer', 'shortExplanation', 'detailedExplanation', 'examPoint', 'difficulty', 'tags'];
+  const requiredTypes = ['term', 'true_false', 'comparison', 'calculation', 'causal_reasoning'];
+  const allowedTypes = new Set([...requiredTypes, 'multiple_choice']);
+  const studyIds = new Set();
+  const studySubjectIds = new Set();
+  const studyTypes = new Set();
+  let reviewRequiredCount = 0;
+  for (const q of study) {
+    for (const field of requiredStudyFields) if (q[field] === undefined || q[field] === null || q[field] === '') errors.push(`質問ベース問題集の ${field} が不足しています: ${q.id || 'IDなし'}`);
+    if (studyIds.has(q.id)) errors.push(`質問ベース問題集にID重複があります: ${q.id}`);
+    studyIds.add(q.id);studySubjectIds.add(q.subject);studyTypes.add(q.questionType);
+    if (q.sourceType !== 'study') errors.push(`質問ベース問題集の sourceType が不正です: ${q.id}`);
+    if (!allowedTypes.has(q.questionType)) errors.push(`質問ベース問題集の問題形式が不正です: ${q.id}`);
+    const choiceCountIsValid = q.questionType === 'true_false' ? q.choices?.length === 2 : q.choices?.length === 4;
+    if (!Array.isArray(q.choices) || !choiceCountIsValid || new Set(q.choices).size !== q.choices.length || !q.choices.includes(q.answer)) errors.push(`質問ベース問題集の選択肢または正答が不正です: ${q.id}`);
+    if (!Number.isInteger(q.difficulty) || q.difficulty < 1 || q.difficulty > 3) errors.push(`質問ベース問題集の難易度が不正です: ${q.id}`);
+    if (!Array.isArray(q.tags) || !q.tags.length) errors.push(`質問ベース問題集のタグが不足しています: ${q.id}`);
+    if (q.needsReview) reviewRequiredCount++;
+  }
+  if (study.length < 120) errors.push(`質問ベース問題集が不足しています: ${study.length}問`);
+  if (studySubjectIds.size !== subjects.length || subjects.some(subject => !studySubjectIds.has(subject.id))) errors.push("質問ベース問題集が7科目をカバーしていません。");
+  for (const type of requiredTypes) if (!studyTypes.has(type)) errors.push(`質問ベース問題集に ${type} 形式がありません。`);
+  if (reviewRequiredCount < 3) errors.push("法改正・年度確認が必要な問題に needsReview が不足しています。");
+  for (const subject of subjects) {
+    const definedCategoryIds = new Set(categoryDefs[subject.id].map(category => category.id));
+    for (const q of study.filter(question => question.subject === subject.id)) {
+      if (!definedCategoryIds.has(q.category)) errors.push(`${subject.name}: 質問ベース問題集に未定義ジャンルがあります: ${q.category}`);
+    }
+  }
+  if (ctx.__quizCollection && ctx.__activeQuizPool && ctx.__filterQuestionType) {
+    ctx.__quizCollection.value = 'study';
+    const selectedPool = ctx.__activeQuizPool();
+    if (selectedPool.length !== study.length || selectedPool.some(question => question.sourceType !== 'study')) errors.push("質問ベース問題集のセット切替が正しく動作しません。");
+    ctx.__quizQuestionType.value = 'calculation';
+    const calculationPool = ctx.__filterQuestionType(selectedPool);
+    if (!calculationPool.length || calculationPool.some(question => question.questionType !== 'calculation')) errors.push("質問ベース問題集の問題形式フィルタが正しく動作しません。");
+  }
 
   const normalizedPastQuestions = new Set();
   for (const q of extracted) {
