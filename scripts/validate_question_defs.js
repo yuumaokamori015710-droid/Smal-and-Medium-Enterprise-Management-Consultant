@@ -10,6 +10,7 @@ const readme = read("README.md");
 const pastQuestionsScript = read(path.join("data", "past_questions.js"));
 const pastQuestionCategoriesScript = read(path.join("data", "past_question_categories.js"));
 const studyGuidesScript = read(path.join("data", "study_guides.js"));
+const pastQuestionExplanationsScript = read(path.join("data", "past_question_explanations.js"));
 const studyQuestionsScript = read(path.join("data", "study_questions.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.map(match => match[1]).find(script => script.includes("const SUBJECTS="));
@@ -39,7 +40,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${pastQuestionExplanationsScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;globalThis.__mockAttempts=mockAttempts;globalThis.__mockAttemptSummary=mockAttemptSummary;globalThis.__setMockHistory=history=>{store.mockHistory=history};`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -93,6 +94,7 @@ function validateShell(html, readme, errors) {
 
   if (!html.includes("間違えた問題")) errors.push("ダッシュボードの間違えた問題スタートが見つかりません。");
   if (!html.includes('src="data/study_guides.js"')) errors.push("解説・用語ガイドが読み込まれていません。");
+  if (!html.includes('src="data/past_question_explanations.js"')) errors.push("過去問の詳しい解説ガイドが読み込まれていません。");
   if (!html.includes('src="data/study_questions.js"')) errors.push("質問ベース問題集データが読み込まれていません。");
   for (const token of ['id="quizCollection"', 'id="quizQuestionType"', 'id="openPointsBtn"', 'id="points"']) {
     if (!html.includes(token)) errors.push(`質問ベース問題集のUIが不足しています: ${token}`);
@@ -220,6 +222,9 @@ function validateGenerated(ctx, errors) {
   if (!ctx.window.STUDY_GUIDES || typeof ctx.window.STUDY_GUIDES !== "object") {
     errors.push("解説・用語ガイドが読み込めません。");
   }
+  if (!ctx.window.PAST_EXPLANATION_GUIDES || typeof ctx.window.PAST_EXPLANATION_GUIDES !== "object") {
+    errors.push("過去問の詳しい解説ガイドが読み込めません。");
+  }
   if (typeof dashboardCards !== "string") {
     errors.push("ダッシュボード進捗カードを生成できません。");
   } else {
@@ -310,6 +315,30 @@ function validateGenerated(ctx, errors) {
       const available = extracted.filter(q => q.subject === subject.id).length;
       if (available < spec.questions) {
         errors.push(`${subject.name}: 模試の必要問題数 ${spec.questions} 問に対し、過去問が ${available} 問です。`);
+      }
+    }
+  }
+
+  if (typeof ctx.__mockAttempts !== "function" || typeof ctx.__mockAttemptSummary !== "function" || typeof ctx.__setMockHistory !== "function") {
+    errors.push("模試の回数別成績を扱う関数が不足しています。");
+  } else {
+    ctx.__setMockHistory([
+      { subject: "economics", ok: 31, total: 50, rate: 62, finishedAt: 200 },
+      { subject: "economics", ok: 24, total: 50, rate: 48, finishedAt: 100 }
+    ]);
+    const attempts = ctx.__mockAttempts("economics");
+    const summary = ctx.__mockAttemptSummary("economics");
+    if (attempts.length !== 2 || attempts[0].attempt !== 1 || attempts[1].attempt !== 2 || !summary.includes("1回目 48%") || !summary.includes("2回目 62%")) {
+      errors.push("模試の1回目・2回目の正答率表示が正しくありません。");
+    }
+  }
+
+  for (const subject of subjects) {
+    const subjectGuides = ctx.window.PAST_EXPLANATION_GUIDES?.[subject.id] || {};
+    for (const category of categoryDefs[subject.id]) {
+      const guide = subjectGuides[category.id];
+      if (!guide || !guide.approach || !guide.trap || !guide.related) {
+        errors.push(`${subject.name}/${category.name}: 詳しい解説ガイドが不足しています。`);
       }
     }
   }
