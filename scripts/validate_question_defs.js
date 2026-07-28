@@ -39,7 +39,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;globalThis.__mockAttempts=mockAttempts;globalThis.__mockAttemptSummary=mockAttemptSummary;globalThis.__setMockHistory=history=>{store.mockHistory=history};`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;globalThis.__mockAttempts=mockAttempts;globalThis.__mockAttemptSummary=mockAttemptSummary;globalThis.__setMockHistory=history=>{store.mockHistory=history};globalThis.__setResultNavigationState=(questions,answers,index)=>{set=questions;sessionAnswers=answers;idx=index;updateResultButton();return{nextText:nextBtn.textContent,nextDisabled:nextBtn.disabled,complete:isSessionComplete()}};`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -145,6 +145,7 @@ function validateScriptText(appScript, errors) {
   if (!appScript.includes("function activeQuizPool")) errors.push("問題セットを切り替える関数が見つかりません。");
   if (!appScript.includes("function filterQuestionType")) errors.push("問題形式フィルタが見つかりません。");
   if (!appScript.includes("function choiceExplanationHtml")) errors.push("選択肢別の不正解理由表示が見つかりません。");
+  if (!appScript.includes("function advanceOrShowResult") || !appScript.includes("リザルトへ")) errors.push("最終問題からリザルトへ進む導線が見つかりません。");
   if (appScript.includes("guidedAnswerSupplementHtml") || appScript.includes("解く順番") || appScript.includes("よくあるひっかけ")) errors.push("ジャンル共通の一般論が解説表示に残っています。");
 }
 
@@ -365,6 +366,17 @@ function validateGenerated(ctx, errors) {
     const summary = ctx.__mockAttemptSummary("economics");
     if (attempts.length !== 2 || attempts[0].attempt !== 1 || attempts[1].attempt !== 2 || !summary.includes("1回目 48%") || !summary.includes("2回目 64%")) {
       errors.push("模試の1回目・2回目の正答率表示が正しくありません。");
+    }
+  }
+
+  if (typeof ctx.__setResultNavigationState !== "function") {
+    errors.push("リザルト遷移の状態検証関数が不足しています。");
+  } else {
+    const sample = [{ id: 'result-a' }, { id: 'result-b' }];
+    const incomplete = ctx.__setResultNavigationState(sample, { 'result-a': { ok: true } }, 1);
+    const complete = ctx.__setResultNavigationState(sample, { 'result-a': { ok: true }, 'result-b': { ok: false } }, 1);
+    if (incomplete.complete || incomplete.nextText !== 'Next' || !incomplete.nextDisabled || !complete.complete || complete.nextText !== 'リザルトへ' || complete.nextDisabled) {
+      errors.push("最終問題でのリザルト遷移ボタンの状態が不正です。");
     }
   }
 
