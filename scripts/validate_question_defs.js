@@ -139,6 +139,9 @@ function validateScriptText(appScript, errors) {
   if (!appScript.includes("PDF_ITEMS")) errors.push("PDFデータモデルが見つかりません。");
   if (!appScript.includes("function explanationText")) errors.push("正解理由を組み立てる関数が見つかりません。");
   if (!appScript.includes("function glossaryText")) errors.push("用語解説を組み立てる関数が見つかりません。");
+  if (!appScript.includes("function pastExplanationText")) errors.push("模試の過去問解説を組み立てる関数が見つかりません。");
+  if (!appScript.includes("PAST_ANSWER_NOTES")) errors.push("模試の問題別解説データが見つかりません。");
+  if (!appScript.includes("data-resume-subject") || !appScript.includes("function sessionSlot")) errors.push("科目別の続きから保存が実装されていません。");
   if (!appScript.includes("function activeQuizPool")) errors.push("問題セットを切り替える関数が見つかりません。");
   if (!appScript.includes("function filterQuestionType")) errors.push("問題形式フィルタが見つかりません。");
   if (!appScript.includes("function choiceExplanationHtml")) errors.push("選択肢別の不正解理由表示が見つかりません。");
@@ -293,9 +296,14 @@ function validateGenerated(ctx, errors) {
     }
     if (!q.sourcePdf || !q.answerPdf) errors.push(`過去問の出典PDFが不足しています: ${q.id}`);
     const explanation = ctx.explanationText(q);
-    if (explanation.includes("公式PDF")) errors.push(`過去問に根拠のない定型解説があります: ${q.id}`);
+    if (!explanation || explanation.includes("公式PDF")) errors.push(`過去問の模試解説が不足しています: ${q.id}`);
     const glossary = ctx.glossaryText(q);
     if (glossary && !glossary.includes("：")) errors.push(`過去問の用語解説の形式が不正です: ${q.id}`);
+  }
+
+  const gdpPastQuestion = extracted.find(question => question.id === 'past-R07-economics-04');
+  if (!gdpPastQuestion || !ctx.explanationText(gdpPastQuestion).includes('輸出−輸入')) {
+    errors.push("模試のGDP問題に個別の正解根拠が設定されていません。");
   }
 
   if (mockSpecs && typeof mockSpecs === "object") {

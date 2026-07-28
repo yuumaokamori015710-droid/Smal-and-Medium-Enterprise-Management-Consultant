@@ -1,4 +1,4 @@
-const CACHE_NAME = "sme-consultant-practice-v50";
+const CACHE_NAME = "sme-consultant-practice-v51";
 const APP_SHELL = [
   "./",
   "./index.html",
