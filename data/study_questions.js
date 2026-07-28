@@ -161,10 +161,15 @@
 
   function termQuestion(subject, category, row, rows, index, number) {
     const distractors = [];
+    const termForDefinition = new Map(rows.map(item => [item.definition, item.term]));
     for (let offset = 1; distractors.length < 3 && offset < rows.length; offset += 1) {
       const candidate = rows[(index + offset) % rows.length].definition;
       if (candidate !== row.definition && !distractors.includes(candidate)) distractors.push(candidate);
     }
+    const choiceExplanations = Object.fromEntries(distractors.map(choice => {
+      const otherTerm = termForDefinition.get(choice);
+      return [choice, `この説明は「${otherTerm || '別の用語'}」を指す。「${row.term}」は、${row.definition}`];
+    }));
     return {
       id: `study-${subject}-term-${String(number).padStart(3, '0')}`,
       subject, subjectName: SUBJECT_NAMES[subject], category, topic: row.term, term: row.term,
@@ -173,6 +178,7 @@
       shortExplanation: `${row.term}は、${row.definition}`,
       detailedExplanation: `一言でいうと、${sentenceBody(row.definition)}。例えば、${sentenceBody(row.example)}。${sentenceBody(row.contrast)}。`,
       examPoint: row.examPoint, commonTrap: row.commonTrap, relatedTerms: row.relatedTerms,
+      choiceExplanations,
       difficulty: row.difficulty || 1, tags: ['質問ベース', '用語', row.term, ...(row.relatedTerms || [])],
       needsReview: !!row.needsReview, referenceDate: row.referenceDate || null,
       examRelevance: row.examRelevance || 'primary', crossSubjectTags: row.crossSubjectTags || [],
@@ -191,7 +197,7 @@
     calculationSteps: extra.calculationSteps || [], correctionIfFalse: extra.correctionIfFalse || null, difficulty: extra.difficulty || 2,
     tags: ['質問ベース', questionType, ...(extra.tags || [])], needsReview: !!extra.needsReview,
     referenceDate: extra.referenceDate || null, examRelevance: extra.examRelevance || 'primary', explain: shortExplanation,
-    point: examPoint, sourceType: 'study', mode: questionType, no: extra.no || 900
+    point: examPoint, choiceExplanations: extra.choiceExplanations || {}, sourceType: 'study', mode: questionType, no: extra.no || 900
   });
 
   const EXTRA_QUESTIONS = [
@@ -224,6 +230,45 @@
     q('study-it-compare-004', 'it', 'data', 'チャーン率・直帰率・離脱率', 'comparison', '定期契約サービスで、顧客が解約していく状況を測る指標として最も適切なものはどれか。', ['チャーン率', '直帰率', '離脱率', 'CPI'], 'チャーン率', 'チャーン率は一定期間に契約を解約・離脱した顧客の割合を表す。', '直帰率は一ページだけを見て離れたセッションの割合、離脱率は特定ページを最後に見た割合である。チャーン率は顧客・契約の継続性を測るため、サブスクリプション事業で重要となる。', '顧客の解約か、Webページ閲覧行動かを分ける。', 'サイトからの離脱をすべてチャーンと呼ぶこと。', { relatedTerms: ['チャーン率', '直帰率', '離脱率'], difficulty: 1 }),
     q('study-policy-tf-001', 'policy', 'trends', '年度依存情報の確認', 'true_false', '「中小企業診断士第一次試験の試験時間、合格基準、科目免除の要件は、過去年度の情報をそのまま使えばよく、年度版の受験案内を確認する必要はない。」この記述は正しいか。', ['誤り', '正しい'], '誤り', '試験制度・日程・時間・免除要件などは年度により変更され得るため、年度版の受験案内で確認する必要がある。', '制度に関する学習では、科目名など比較的安定した情報と、日程・時間・数値基準のように年度依存する情報を分ける。後者は古い教材の数値を固定で覚えず、公式の年度版資料で確認する。', '制度問題では基準日・年度を確認する。', '前年の数値を現在の制度へ無条件に当てはめること。', { correctionIfFalse: '試験時間、合格基準、科目免除の要件などは年度版の受験案内で確認する必要がある。', relatedTerms: ['科目合格制度', '科目免除', '試験時間'], needsReview: true, referenceDate: '受験案内の年度版を確認', difficulty: 1 })
   ];
+
+  const EXTRA_WRONG_REASONS = {
+    'study-econ-causal-001': [null, '現金・預金比率が上がっても、中央銀行がマネタリーベースを必ず減らすわけではない。問われているのは家計の現金保有が銀行預金と信用創造を減らす経路である。', '現金・預金比率は家計の保有行動であり、法定準備率を決めない。準備率がゼロなら、むしろ信用創造を妨げる説明にならない。', '輸出の増減は、現金・預金比率から貨幣乗数が低下する理由ではない。'],
+    'study-econ-tf-001': [null, '外国貿易乗数は輸出増加が国民所得へ波及する大きさを表す係数であり、貿易収支の直接的な改善額に掛けない。'],
+    'study-econ-compare-001': [null, '名目GNIへの調整項目は輸出ではなく、海外からの第一次所得の純受取である。輸出入の差は貿易収支の論点である。', '名目GDPから名目GNIへの変換で輸入を加えることはない。国内生産と国民に帰属する所得の違いを見ている。', '両者の差は物価変動ではなく、海外からの所得の純受取を含めるかどうかである。'],
+    'study-econ-causal-002': [null, '金利上昇は資本流入や為替に影響し得るが、輸入を必ずゼロにする因果関係はない。', '政策金利の上昇だけからマネタリーベースの増加は導けない。金融政策の操作手段と市場金利の結果を混同している。', '金利上昇から失業率ゼロまでは導けず、「必ず」という断定も誤りである。'],
+    'study-finance-calculation-001': [null, '5.0％は3％と8％の単純平均である。WACCは負債40％、自己資本60％の比率を掛ける加重平均で求める。', '4.5％は与えられた資本構成比を使った計算結果にならない。負債コストと自己資本コストをそれぞれ比率で加重する。', '11.0％は二つのコストをそのまま足した値であり、企業全体の加重平均ではない。'],
+    'study-finance-calculation-002': [null, '100百万円は毎期のキャッシュフローであり、初期投資を控除したNPVではない。', '0百万円になるのは割引率がIRRと一致する場合であり、ここでは10％で現在価値1,000百万円となる。', '800百万円は初期投資額であり、永続年金の現在価値から控除する対象である。'],
+    'study-finance-causal-001': [null, '売上債権は通常の営業循環で回収される流動資産であり、減価償却の対象となる固定資産ではない。', '売上債権の増加は掛売上の未回収分が増えたことを示す。現金収入ではないため営業CFでは控除する。', '売上債権は本業の販売に伴う債権なので、投資活動ではなく営業活動の調整項目である。'],
+    'study-finance-compare-001': [null, '直接原価計算では固定製造間接費を当期費用にするため、在庫へ繰り延べない。', '両者で異なるのは固定製造間接費の扱いであり、在庫が増えると営業利益が一致しないことがある。', '全部原価計算でも変動製造原価は製品原価に含める。'],
+    'study-finance-tf-001': [null, '通勤定期代は従業員のための支出でも、法令で事業主負担が義務付けられた社会保険料ではない。通常は福利厚生費として扱う。'],
+    'study-strategy-tf-001': [null, '組織スラックは余剰資源であり、共同意思決定や部門間コンフリクトを一律に減らす原因ではない。相互依存性や目標の違いは残る。'],
+    'study-strategy-tf-002': [null, 'ゼロサムでは一人の配分増加が他者の配分減少につながるため、勝敗と利害対立はむしろ明確になりやすい。'],
+    'study-strategy-tf-003': [null, 'コングロマリットは関連性の低い事業の組合せである。資源シナジーが中心になりやすい関連多角化と混同している。'],
+    'study-strategy-compare-001': [null, '部品を比較的自由に交換できるのは、インターフェースを標準化したモジュラー型である。インテグラル型はすり合わせが必要になる。', '両者は組織階層ではなく、製品アーキテクチャにおける部品間の相互依存性を表す。', 'モジュラー型は標準化された接続規格を通じて分業や部品交換をしやすくする。'],
+    'study-strategy-compare-002': [null, '機械的管理システムは安定した環境で、規則・階層・明確な職務分担による効率を重視する。変化への横断対応には適しにくい。', '完全競争市場は市場構造の概念であり、組織の管理システムではない。', 'ゼロサム分配は資源配分の概念であり、部門横断的な開発体制を説明しない。'],
+    'study-strategy-compare-003': [null, '後方統合は原材料・部品など供給者側を取得する統合である。小売は顧客に近い下流なので前方統合となる。', '水平統合は同じサプライチェーン段階の企業を統合することを指す。製造業者による小売買収は垂直統合である。', 'コングロマリット化は関連性の低い事業への進出であり、既存製品の販売段階を取得する行為ではない。'],
+    'study-ops-calculation-001': [null, '40,000円は手直しで得られる追加限界利益だけである。廃棄しなくてよくなる35,000円も回避可能費用として加える。', '35,000円は回避できる廃棄費用だけであり、良品として販売して得る限界利益40,000円を含まない。', '100,000円は販売価格2,000円を50個分そのまま使った額で、変動費と回避できる廃棄費用を区別していない。'],
+    'study-ops-compare-001': [null, 'MESは現場の作業指示・進捗・実績を管理し、APSは能力・資材・納期の制約下で計画を最適化する。役割が逆である。', 'WAFとIDSはセキュリティ対策の用語であり、生産計画と現場実行の組合せではない。', 'ERPとBIは基幹業務統合や分析を扱う概念で、APSとMESの役割分担を表さない。'],
+    'study-law-tf-001': [null, '日本の特許法は、先に発明した日ではなく原則として先に出願した者を優先する先願主義を採用している。'],
+    'study-law-tf-002': [null, '物の発明の実施には、生産だけでなく使用、譲渡等、輸入も含まれる。国内で製造していないことは理由にならない。'],
+    'study-law-compare-001': [null, '合同会社は持分会社だが、社員は原則として有限責任である。無限責任社員だけで構成される合名会社と混同している。', '株式会社には株主が出資し、株式を基礎とする。社員だけが出資するという説明は合同会社の構造と混同している。', '合同会社では定款自治の自由度が比較的高く、利益配分も出資比率と異なる定めを置き得る。'],
+    'study-law-tf-003': [null, '保証人は主たる債務者のために弁済した後、本来の負担者である主たる債務者へ求償できる。'],
+    'study-law-tf-004': [null, 'TOBは取引所の注文板で通常注文を出す市場内取引ではない。買付価格・期間などを示して市場外で応募を募る公開買付けである。'],
+    'study-it-calculation-001': [null, '1,250万円は現在支出AC600万円に残予算500万円を足しただけで、現時点のCPI=2/3によるコスト超過を織り込んでいない。', '1,000万円は当初予算BACであり、CPIが1未満の現状では完成時見込額EACにはならない。', '800万円はEVや別の数値を使った値で、EAC=BAC/CPIの計算結果ではない。'],
+    'study-it-compare-001': [null, '接続確立、再送、順序制御で信頼性を確保するのはTCPである。UDPはこれらを基本的に持たない。', 'IPアドレスの自動配布はDHCPの役割であり、UDPの特徴ではない。', 'ドメイン名をIPアドレスへ変換するのはDNSの役割である。'],
+    'study-it-compare-002': [null, '通信遮断まで行うのはIPSであり、IDSは主に侵入の兆候を検知して通知する。役割が逆である。', 'IDSとIPSは侵入検知・防止を扱い、Webアプリケーションの攻撃だけに対象を限定しない。', 'IPアドレスの自動割当てはDHCPの役割であり、IDSの機能ではない。'],
+    'study-it-compare-003': [null, '電源装置の故障は可用性や設備保全の論点であり、HTTPリクエストを解析するWAFの主対象ではない。', '人事評価は業務管理の論点であり、Webアプリケーション層の攻撃を防ぐWAFとは無関係である。', '帳票の保管期限は文書管理の論点であり、WAFが解析する通信内容ではない。'],
+    'study-it-compare-004': [null, '直帰率は一ページだけを見て離れたセッションの割合であり、契約を解約した顧客の割合ではない。', '離脱率は特定のWebページを最後に見た割合であり、定期契約の解約率を示す指標ではない。', 'CPIは文脈により物価指数やコスト効率を表す略語であり、顧客解約を測るチャーン率ではない。'],
+    'study-policy-tf-001': [null, '試験時間、合格基準、科目免除などは年度ごとに見直され得る。古い受験案内だけで判断せず、当年度版を確認する必要がある。']
+  };
+
+  EXTRA_QUESTIONS.forEach(question => {
+    const reasons = EXTRA_WRONG_REASONS[question.id] || [];
+    question.choiceExplanations = Object.fromEntries(question.choices.flatMap((choice, index) => {
+      const reason = reasons[index];
+      return choice === question.answer || !reason ? [] : [[choice, reason]];
+    }));
+  });
 
   window.STUDY_QUESTIONS = [...termQuestions, ...EXTRA_QUESTIONS];
   window.STUDY_COLLECTION_META = {

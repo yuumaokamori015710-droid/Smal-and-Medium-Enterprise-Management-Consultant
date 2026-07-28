@@ -10,7 +10,6 @@ const readme = read("README.md");
 const pastQuestionsScript = read(path.join("data", "past_questions.js"));
 const pastQuestionCategoriesScript = read(path.join("data", "past_question_categories.js"));
 const studyGuidesScript = read(path.join("data", "study_guides.js"));
-const pastQuestionExplanationsScript = read(path.join("data", "past_question_explanations.js"));
 const studyQuestionsScript = read(path.join("data", "study_questions.js"));
 const inlineScripts = Array.from(html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g));
 const appScript = inlineScripts.map(match => match[1]).find(script => script.includes("const SUBJECTS="));
@@ -40,7 +39,7 @@ if (!appScript) {
     const runtimeCtx = makeRuntimeContext();
     vm.createContext(runtimeCtx);
     vm.runInContext(
-      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${pastQuestionExplanationsScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;globalThis.__mockAttempts=mockAttempts;globalThis.__mockAttemptSummary=mockAttemptSummary;globalThis.__setMockHistory=history=>{store.mockHistory=history};`,
+      `${pastQuestionsScript}\n${pastQuestionCategoriesScript}\n${studyGuidesScript}\n${studyQuestionsScript}\n${appScript.replace(/init\(\);\s*$/, "")}\nglobalThis.__generated=GENERATED_QUESTIONS;globalThis.__extracted=EXTRACTED_QUESTIONS;globalThis.__study=STUDY_QUESTIONS;globalThis.__questions=QUESTIONS;globalThis.__subjects=SUBJECTS;globalThis.__cats=CATEGORY_DEFS;globalThis.__all=ALL_PRACTICE_QUESTIONS;globalThis.__pdf=PDF_ITEMS;globalThis.__mockSpecs=MOCK_SPECS;globalThis.__pastCategoryMap=window.PAST_QUESTION_CATEGORIES;globalThis.__quizCollection=quizCollection;globalThis.__quizQuestionType=quizQuestionType;globalThis.__activeQuizPool=activeQuizPool;globalThis.__filterQuestionType=filterQuestionType;globalThis.__mockAttempts=mockAttempts;globalThis.__mockAttemptSummary=mockAttemptSummary;globalThis.__setMockHistory=history=>{store.mockHistory=history};`,
       runtimeCtx
     );
     runtimeCtx.__dashboardCards = runtimeCtx.subjectProgressHtml();
@@ -94,7 +93,6 @@ function validateShell(html, readme, errors) {
 
   if (!html.includes("間違えた問題")) errors.push("ダッシュボードの間違えた問題スタートが見つかりません。");
   if (!html.includes('src="data/study_guides.js"')) errors.push("解説・用語ガイドが読み込まれていません。");
-  if (!html.includes('src="data/past_question_explanations.js"')) errors.push("過去問の詳しい解説ガイドが読み込まれていません。");
   if (!html.includes('src="data/study_questions.js"')) errors.push("質問ベース問題集データが読み込まれていません。");
   for (const token of ['id="quizCollection"', 'id="quizQuestionType"', 'id="openPointsBtn"', 'id="points"']) {
     if (!html.includes(token)) errors.push(`質問ベース問題集のUIが不足しています: ${token}`);
@@ -143,7 +141,8 @@ function validateScriptText(appScript, errors) {
   if (!appScript.includes("function glossaryText")) errors.push("用語解説を組み立てる関数が見つかりません。");
   if (!appScript.includes("function activeQuizPool")) errors.push("問題セットを切り替える関数が見つかりません。");
   if (!appScript.includes("function filterQuestionType")) errors.push("問題形式フィルタが見つかりません。");
-  if (!appScript.includes("function answerSupplementHtml")) errors.push("質問ベース問題集の詳細解説表示が見つかりません。");
+  if (!appScript.includes("function choiceExplanationHtml")) errors.push("選択肢別の不正解理由表示が見つかりません。");
+  if (appScript.includes("guidedAnswerSupplementHtml") || appScript.includes("解く順番") || appScript.includes("よくあるひっかけ")) errors.push("ジャンル共通の一般論が解説表示に残っています。");
 }
 
 function validateDefinitions(defs, errors) {
@@ -222,9 +221,6 @@ function validateGenerated(ctx, errors) {
   if (!ctx.window.STUDY_GUIDES || typeof ctx.window.STUDY_GUIDES !== "object") {
     errors.push("解説・用語ガイドが読み込めません。");
   }
-  if (!ctx.window.PAST_EXPLANATION_GUIDES || typeof ctx.window.PAST_EXPLANATION_GUIDES !== "object") {
-    errors.push("過去問の詳しい解説ガイドが読み込めません。");
-  }
   if (typeof dashboardCards !== "string") {
     errors.push("ダッシュボード進捗カードを生成できません。");
   } else {
@@ -246,7 +242,7 @@ function validateGenerated(ctx, errors) {
   if (new Set(allPractice.map(q => q.id)).size !== allPractice.length) errors.push("ALL_PRACTICE_QUESTIONS に ID 重複があります。");
   if (allPractice.length !== questions.length + study.length + extracted.length) errors.push("ALL_PRACTICE_QUESTIONS がクイズ+質問ベース問題集+過去問抽出の合計と一致しません。");
 
-  const requiredStudyFields = ['id', 'subject', 'category', 'questionType', 'question', 'correctAnswer', 'shortExplanation', 'detailedExplanation', 'examPoint', 'difficulty', 'tags'];
+  const requiredStudyFields = ['id', 'subject', 'category', 'questionType', 'question', 'correctAnswer', 'shortExplanation', 'detailedExplanation', 'examPoint', 'difficulty', 'tags', 'choiceExplanations'];
   const requiredTypes = ['term', 'true_false', 'comparison', 'calculation', 'causal_reasoning'];
   const allowedTypes = new Set([...requiredTypes, 'multiple_choice']);
   const studyIds = new Set();
@@ -261,6 +257,7 @@ function validateGenerated(ctx, errors) {
     if (!allowedTypes.has(q.questionType)) errors.push(`質問ベース問題集の問題形式が不正です: ${q.id}`);
     const choiceCountIsValid = q.questionType === 'true_false' ? q.choices?.length === 2 : q.choices?.length === 4;
     if (!Array.isArray(q.choices) || !choiceCountIsValid || new Set(q.choices).size !== q.choices.length || !q.choices.includes(q.answer)) errors.push(`質問ベース問題集の選択肢または正答が不正です: ${q.id}`);
+    for (const choice of (q.choices || [])) if (choice !== q.answer && !q.choiceExplanations?.[choice]) errors.push(`質問ベース問題集の不正解理由が不足しています: ${q.id}`);
     if (!Number.isInteger(q.difficulty) || q.difficulty < 1 || q.difficulty > 3) errors.push(`質問ベース問題集の難易度が不正です: ${q.id}`);
     if (!Array.isArray(q.tags) || !q.tags.length) errors.push(`質問ベース問題集のタグが不足しています: ${q.id}`);
     if (/。。|！！|？？/.test(q.detailedExplanation || '')) errors.push(`質問ベース問題集の詳しい解説に句読点の重複があります: ${q.id}`);
@@ -296,13 +293,9 @@ function validateGenerated(ctx, errors) {
     }
     if (!q.sourcePdf || !q.answerPdf) errors.push(`過去問の出典PDFが不足しています: ${q.id}`);
     const explanation = ctx.explanationText(q);
-    if (!explanation || !explanation.includes("正解肢の") || explanation.includes("公式PDF")) {
-      errors.push(`過去問の正解理由が不足しています: ${q.id}`);
-    }
+    if (explanation.includes("公式PDF")) errors.push(`過去問に根拠のない定型解説があります: ${q.id}`);
     const glossary = ctx.glossaryText(q);
-    if (!glossary || !glossary.includes("：")) {
-      errors.push(`過去問の用語解説が不足しています: ${q.id}`);
-    }
+    if (glossary && !glossary.includes("：")) errors.push(`過去問の用語解説の形式が不正です: ${q.id}`);
   }
 
   if (mockSpecs && typeof mockSpecs === "object") {
@@ -341,16 +334,6 @@ function validateGenerated(ctx, errors) {
     }
   }
 
-  for (const subject of subjects) {
-    const subjectGuides = ctx.window.PAST_EXPLANATION_GUIDES?.[subject.id] || {};
-    for (const category of categoryDefs[subject.id]) {
-      const guide = subjectGuides[category.id];
-      if (!guide || !guide.approach || !guide.trap || !guide.related) {
-        errors.push(`${subject.name}/${category.name}: 詳しい解説ガイドが不足しています。`);
-      }
-    }
-  }
-
   const fingerprints = new Set();
   const topicModeKeys = new Set();
   for (const q of questions) {
@@ -371,6 +354,7 @@ function validateGenerated(ctx, errors) {
     } else if (!q.choices.includes(q.answer)) {
       errors.push(`正解が選択肢に含まれていません: ${q.id}`);
     }
+    for (const choice of (q.choices || [])) if (choice !== q.answer && !q.choiceExplanations?.[choice]) errors.push(`クイズの不正解理由が不足しています: ${q.id}`);
   }
 
   for (const subject of subjects) {
@@ -379,6 +363,15 @@ function validateGenerated(ctx, errors) {
     const definedCategoryIds = new Set(categoryDefs[subject.id].map(c => c.id));
     for (const q of subjectQuestions) {
       if (!definedCategoryIds.has(q.category)) errors.push(`${subject.name}: 未定義ジャンルの問題があります: ${q.category}`);
+    }
+  }
+
+  for (const q of [...study, ...questions]) {
+    const selectedWrongChoice = q.choices?.find(choice => choice !== q.answer);
+    const expectedReason = q.choiceExplanations?.[selectedWrongChoice];
+    const rendered = ctx.choiceExplanationHtml?.(q, selectedWrongChoice) || '';
+    if (!expectedReason || !rendered.includes(expectedReason)) {
+      errors.push(`選択した不正解肢の理由を表示できません: ${q.id}`);
     }
   }
 
