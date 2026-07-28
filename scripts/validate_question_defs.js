@@ -224,6 +224,9 @@ function validateGenerated(ctx, errors) {
   if (!ctx.window.STUDY_GUIDES || typeof ctx.window.STUDY_GUIDES !== "object") {
     errors.push("解説・用語ガイドが読み込めません。");
   }
+  if (!ctx.window.STUDY_TIPS || !Array.isArray(ctx.window.STUDY_TIPS.finance)) {
+    errors.push("財務・会計の学習Tipsが読み込めません。");
+  }
   if (typeof dashboardCards !== "string") {
     errors.push("ダッシュボード進捗カードを生成できません。");
   } else {
@@ -270,6 +273,27 @@ function validateGenerated(ctx, errors) {
   if (studySubjectIds.size !== subjects.length || subjects.some(subject => !studySubjectIds.has(subject.id))) errors.push("質問ベース問題集が7科目をカバーしていません。");
   for (const type of requiredTypes) if (!studyTypes.has(type)) errors.push(`質問ベース問題集に ${type} 形式がありません。`);
   if (reviewRequiredCount < 3) errors.push("法改正・年度確認が必要な問題に needsReview が不足しています。");
+  const julyFinance = study.filter(question => question.addedAt === '2026-07-28');
+  const julyTerms = julyFinance.filter(question => question.questionType === 'term');
+  const julyExercises = julyFinance.filter(question => question.questionType !== 'term');
+  if (julyFinance.length < 64 || julyTerms.length < 47 || julyExercises.length < 17) {
+    errors.push(`2026-07-28の財務・会計コンテンツが不足しています: ${julyFinance.length}件（用語${julyTerms.length}、演習${julyExercises.length}）`);
+  }
+  if (julyFinance.some(question => question.subject !== 'finance' || !question.tags?.includes('2026-07-28'))) {
+    errors.push("2026-07-28の追加コンテンツに科目または追加日メタデータの不整合があります。");
+  }
+  if (julyExercises.some(question => !String(question.detailedExplanation || '').includes('1. ') || !String(question.detailedExplanation || '').includes('8. '))) {
+    errors.push("2026-07-28の演習問題に手順付き解説が不足しています。");
+  }
+  const expectedJulyTerms = ['CVP分析', '限界利益率', '損益分岐点売上高', '安全余裕率', '標準原価計算', '価格差異', '数量差異', '現在価値', '割引率', '残存価額', 'ROE', 'ROIC', 'NOPAT', '総合原価計算', '完成品換算量', '差額補充法', '間接法', '仕入債務の増加'];
+  const julyTermNames = new Set(julyTerms.map(question => question.term));
+  for (const term of expectedJulyTerms) if (!julyTermNames.has(term)) errors.push(`2026-07-28の財務・会計用語が不足しています: ${term}`);
+  if (new Set(study.filter(question => question.questionType === 'term').map(question => question.term)).size !== study.filter(question => question.questionType === 'term').length) {
+    errors.push("質問ベース問題集の用語カードに重複があります。");
+  }
+  if ((ctx.window.STUDY_TIPS.finance || []).length < 3 || (ctx.window.STUDY_TIPS.finance || []).some(tip => !tip.title || !tip.conclusion || !tip.why || !tip.formula || !tip.example || !tip.memory)) {
+    errors.push("財務・会計の学習Tipsに必要な項目が不足しています。");
+  }
   for (const subject of subjects) {
     const definedCategoryIds = new Set(categoryDefs[subject.id].map(category => category.id));
     for (const q of study.filter(question => question.subject === subject.id)) {
