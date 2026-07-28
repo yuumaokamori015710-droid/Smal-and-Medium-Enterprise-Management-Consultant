@@ -663,7 +663,7 @@ function glossaryEntries(q){const text=[q.question,q.answer,...(q.choices||[])].
 function glossaryEntry(q){return glossaryEntries(q)[0]||null}
 function choiceBody(value){return String(value||'').replace(/^[ア-オＡ-Ｅa-e]\s*[：:：]?\s*/,'').replace(/\s+/g,' ').trim()}
 function isNegativeQuestion(q){return /最も(?:不適切|誤って|適切でない)|誤り(?:である|はどれ)|正しくない|不適当/.test(q.question)}
-function pastExplanationText(q){if(q.answerExplanation)return q.answerExplanation;if(PAST_ANSWER_NOTES[q.id])return PAST_ANSWER_NOTES[q.id];const entry=glossaryEntry(q),correct=shortText(choiceBody(q.answer),120);if(entry)return `この問題の判断軸は「${entry[0]}」である。${entry[1]} 正解肢は「${correct}」。`;return `正解肢は「${correct}」。問題文に示された条件と選択肢の記述を照合して判断する。`}
+function pastExplanationText(q){return q.answerExplanation||PAST_ANSWER_NOTES[q.id]||''}
 function explanationText(q){return q.sourceType==='past'?pastExplanationText(q):q.explain||''}
 function explanationHtml(q){const text=explanationText(q);return text?`<div class="answer-explanation"><strong>${q.sourceType==='study'?'短い解説':'解説'}</strong><br>${escapeHtml(text)}</div>`:''}
 function glossaryText(q){const entries=glossaryEntries(q).slice(0,q.sourceType==='past'?2:1),topicSeedData=(TOPICS[q.subject]||[]).find(seed=>seed[0]===q.topic);if(entries.length)return entries.map(([term,definition])=>`${term}：${definition}`).join('\n');return topicSeedData?`${topicSeedData[0]}：${topicSeedData[1]}`:''}
