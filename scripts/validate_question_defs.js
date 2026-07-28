@@ -306,11 +306,19 @@ function validateGenerated(ctx, errors) {
   }
 
   if (mockSpecs && typeof mockSpecs === "object") {
+    const expectedMockSpecs = {
+      economics: [25, 60], finance: [25, 60], strategy: [40, 90], operations: [40, 90],
+      law: [25, 60], it: [25, 60], policy: [40, 90]
+    };
     for (const subject of subjects) {
       const spec = mockSpecs[subject.id];
       if (!spec || !Number.isInteger(spec.questions) || !Number.isInteger(spec.minutes)) {
         errors.push(`${subject.name}: 模試設定が不正です。`);
         continue;
+      }
+      const [questions, minutes] = expectedMockSpecs[subject.id] || [];
+      if (spec.questions !== questions || spec.minutes !== minutes) {
+        errors.push(`${subject.name}: 本試験形式の問題数または時間が一致しません。`);
       }
       const available = extracted.filter(q => q.subject === subject.id).length;
       if (available < spec.questions) {
@@ -323,12 +331,12 @@ function validateGenerated(ctx, errors) {
     errors.push("模試の回数別成績を扱う関数が不足しています。");
   } else {
     ctx.__setMockHistory([
-      { subject: "economics", ok: 31, total: 50, rate: 62, finishedAt: 200 },
-      { subject: "economics", ok: 24, total: 50, rate: 48, finishedAt: 100 }
+      { subject: "economics", ok: 16, total: 25, rate: 64, finishedAt: 200 },
+      { subject: "economics", ok: 12, total: 25, rate: 48, finishedAt: 100 }
     ]);
     const attempts = ctx.__mockAttempts("economics");
     const summary = ctx.__mockAttemptSummary("economics");
-    if (attempts.length !== 2 || attempts[0].attempt !== 1 || attempts[1].attempt !== 2 || !summary.includes("1回目 48%") || !summary.includes("2回目 62%")) {
+    if (attempts.length !== 2 || attempts[0].attempt !== 1 || attempts[1].attempt !== 2 || !summary.includes("1回目 48%") || !summary.includes("2回目 64%")) {
       errors.push("模試の1回目・2回目の正答率表示が正しくありません。");
     }
   }
