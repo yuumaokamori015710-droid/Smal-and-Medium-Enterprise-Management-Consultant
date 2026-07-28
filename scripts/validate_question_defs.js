@@ -296,7 +296,9 @@ function validateGenerated(ctx, errors) {
     }
     if (!q.sourcePdf || !q.answerPdf) errors.push(`過去問の出典PDFが不足しています: ${q.id}`);
     const explanation = ctx.explanationText(q);
-    if (!explanation || explanation.includes("公式PDF")) errors.push(`過去問の模試解説が不足しています: ${q.id}`);
+    if (explanation.includes("公式PDF") || explanation.includes("問題文に示された条件と選択肢の記述を照合")) {
+      errors.push(`過去問に定型の模試解説が残っています: ${q.id}`);
+    }
     const glossary = ctx.glossaryText(q);
     if (glossary && !glossary.includes("：")) errors.push(`過去問の用語解説の形式が不正です: ${q.id}`);
   }
